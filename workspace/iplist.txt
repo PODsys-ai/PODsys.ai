@@ -1,0 +1,2 @@
+2xxxxxx01	cu01	192.168.2.1/24	none	none	192.168.100.1	none
+2xxxxxx02	cu02	192.168.2.2/24	none	none	192.168.100.2	none
