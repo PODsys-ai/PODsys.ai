@@ -1,7 +1,8 @@
 #!/bin/bash
 cd $(dirname $0)
 start_flask_app() {
-        nohup python3 /root/app.py -h 0.0.0.0 > flask.log 2>&1 &
+        #nohup python3 /root/app.py -h 0.0.0.0 > flask.log 2>&1 &
+        nohup python3 /root/app.py -h 0.0.0.0 > /dev/null 2>&1 &
 }
 
 echo -e "\033[43;31m "Welcome to the Nexus cluster deployment software"\033[0m"
@@ -158,6 +159,10 @@ else
    echo "$grub_cfg"     > /srv/tftp/pxe_ubuntu2204/grub/grub.cfg
 fi
 
+if [ -s /var/www/html/workspace/mac_ip.txt ]; then
+    echo "dhcp-ignore=tag:!known" >> /etc/dnsmasq.conf
+    echo "dhcp-hostsfile=/var/www/html/workspace/mac_ip.txt" >> /etc/dnsmasq.conf
+fi
 
 ################################### get user-data
 userdata=$(cat << EOF
@@ -224,7 +229,7 @@ autoinstall:
     - systemctl start nfs-common || true
     - curtin in-target --target=/target -- mkdir -p podsys
     - mount -t nfs -o vers=3 ${manager_ip}:/home/nexus/podsys/log /target/podsys || true
-    - curtin in-target --target=/target -- chmod 755 install.sh
+    - curtin in-target --target=/target -- chmod 755 install.sh || true
     - curtin in-target --target=/target -- chmod 755 cuda_12.2.2_535.104.05_linux.run || true
     - curtin in-target --target=/target -- /install.sh ${manager_ip}
     - umount /target/podsys || true
@@ -234,8 +239,6 @@ autoinstall:
     - curtin in-target --target=/target -- rm -f  install.sh || true
     - cp /autoinstall.yaml /target/podsys/autoinstall.yaml || true
     - mv /target/iplist.txt /target/podsys/iplist.txt || true
-    - curtin in-target --target=/target -- wget http://${manager_ip}:8800/workspace/endtag
-    - curtin in-target --target=/target -- rm -f  endtag || true
     - reboot
   storage:
     swap:

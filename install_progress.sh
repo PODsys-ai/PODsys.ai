@@ -14,14 +14,13 @@ if [ "$(id -u)" != "0" ]; then
    fi
 else
    if [ ! -f "hosts.txt" ]; then
-      touch hosts.txt &&  chmod 777 hosts.txt
+      touch hosts.txt &&  chmod 666 hosts.txt
    else
       cat /dev/null > hosts.txt
    fi
 fi
 
-mapfile -t mip_array < <(grep "manager_ip" config.yaml | cut -d ":" -f 2 | tr -d ' ')
-hosts=$(awk '{split($3, parts, "/"); print parts[1]}' workspace/iplist.txt | grep -v '^$' | grep -v -E "$(IFS=\| ; echo "${mip_array[*]}")")
+hosts=$(awk '{split($3, parts, "/"); print parts[1]}' workspace/iplist.txt | grep -v '^$')
 for host in ${hosts[*]}
 do
    grep -wqF "$host" hosts.txt || echo "$host" >> hosts.txt
@@ -34,16 +33,26 @@ while IFS= read -r line; do
 done < hosts.txt
 
 for machine in "${machines[@]}"
-do   
+do
      sudo -u $username ssh-keygen -f "/home/${username}/.ssh/known_hosts" -R "$machine" > /dev/null 2>&1
      sudo -u $username ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "nexus@$machine" "echo 'SSH to $machine successful'" 2>/dev/null
      if [ $? -eq 0 ]; then
-	sudo -u $username ssh "nexus@$machine" "date"
-	sudo -u $username ssh "nexus@$machine" "exit"
-	echo
+        sudo -u $username ssh "nexus@$machine" "date"
+        sudo -u $username ssh "nexus@$machine" "exit"
+        echo
      else
          echo "Failed to SSH to $machine"
          sed -i "/$machine/d"  hosts.txt
-	 echo
+         echo
      fi
 done
+
+# ssh localhost
+manager_ip=$(cat config.yaml | grep "manager_ip" | cut -d ":" -f 2 | tr -d ' ')
+sudo -u $username ssh-keygen -f "/home/${username}/.ssh/known_hosts" -R "manager_ip" > /dev/null 2>&1
+sudo -u $username ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "nexus@$manager_ip" "echo 'SSH to $manager_ip successful'" 2>/dev/null
+if [ $? -eq 0 ]; then
+        sudo -u $username ssh "nexus@$manager_ip" "date"
+        sudo -u $username ssh "nexus@$manager_ip" "exit"
+        echo
+fi

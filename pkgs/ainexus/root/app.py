@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request, abort
-
+from datetime import datetime
 from functions import (
     count_access,
     count_dnsmasq,
@@ -10,21 +10,39 @@ from functions import (
     update_gpustate,
     update_ibstate,
     update_finished_status,
+    install_finished,
 )
 import os
 import psutil
 import time
 import csv
-import fcntl
+import re
 
 app = Flask(__name__)
 
+app.config["isGetStartTime"] = False
+app.config["startTime"] = None
+app.config["endTime"] = 0
+app.config["installTime"] = 0
 
-# generation monitor.txt temple
-generation_monitor_temple()
+app.config["isGetFirstEndtag"] = False
+app.config["newEndtagTime"] = None
+app.config["firstInstallTime"] = None
+app.config["installTimeDiff"] = None
+app.config["finishedCount"] = 0
+
+# counts of receive_serial_e
+app.config["counts_receive_serial_e"] = 0
+app.config["isFinished"] = False
+
+
+# generation monitor.txt temple and Count the total number of machines to be installed
+app.config["countMachines"] = generation_monitor_temple()
+
 
 # Network Speed Monitor
 interface = os.getenv("manager_nic")
+current_year = datetime.now().year
 
 
 @app.route("/speed")
@@ -41,6 +59,50 @@ def get_speed():
         tx_speed = (tx_new - tx_old) / 1024 / 1024
         return jsonify({"rx_speed": rx_speed, "tx_speed": tx_speed})
     return jsonify({"rx_speed": 0, "tx_speed": 0})
+
+
+# Install time
+@app.route("/time")
+def get_time():
+
+    if not app.config["isGetStartTime"]:
+        if os.path.exists("/log/dnsmasq.log"):
+            with open("/log/dnsmasq.log", "r") as file:
+                for line in file:
+                    if "ipxe_ubuntu2204/ubuntu2204.cfg" in line:
+                        time_regex = r"(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})"
+                        matched = re.search(time_regex, line)
+                        time_str = matched.group(1)
+                        log_time = datetime.strptime(
+                            f"{time_str} {current_year}", "%b %d %H:%M:%S %Y"
+                        )
+                        app.config["startTime"] = log_time
+                        app.config["isGetStartTime"] = True
+                        break
+
+    if app.config["isGetStartTime"]:
+        if app.config["countMachines"] != app.config["counts_receive_serial_e"]:
+            app.config["installTime"] = (
+                datetime.now().replace(microsecond=0) - app.config["startTime"]
+            )
+        else:
+            app.config["installTime"] = app.config["endTime"] - app.config["startTime"]
+
+    if app.config["isGetFirstEndtag"] and (not app.config["isFinished"]):
+        time1 = app.config["newEndtagTime"]
+        time2 = datetime.now().replace(microsecond=0)
+        app.config["installTimeDiff"] = time2 - time1
+        time3 = app.config["firstInstallTime"]
+        time4 = app.config["installTimeDiff"]
+        if time3 < time4:
+            app.config["isFinished"] = True
+            install_finished()
+
+    temp = app.config["installTime"]
+    if app.config["installTime"] == 0:
+        return jsonify({"installTime": 0})
+    seconds = int(temp.total_seconds())
+    return jsonify({"installTime": seconds})
 
 
 # favicon.ico
@@ -106,6 +168,36 @@ def ibstate():
 
 @app.route("/receive_serial_e", methods=["POST"])
 def receive_serial_e():
+
+    if not app.config["isGetStartTime"]:
+        if os.path.exists("/log/dnsmasq.log"):
+            with open("/log/dnsmasq.log", "r") as file:
+                for line in file:
+                    if "ipxe_ubuntu2204/ubuntu2204.cfg" in line:
+                        time_regex = r"(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})"
+                        matched = re.search(time_regex, line)
+                        time_str = matched.group(1)
+                        log_time = datetime.strptime(
+                            f"{time_str} {current_year}", "%b %d %H:%M:%S %Y"
+                        )
+                        app.config["startTime"] = log_time
+                        app.config["isGetStartTime"] = True
+                        break
+
+    app.config["counts_receive_serial_e"] = app.config["counts_receive_serial_e"] + 1
+
+    if app.config["countMachines"] == app.config["counts_receive_serial_e"]:
+        app.config["endTime"] = datetime.now().replace(microsecond=0)
+
+    if not app.config["isGetFirstEndtag"]:
+        app.config["isGetFirstEndtag"] = True
+        app.config["firstInstallTime"] = (
+            datetime.now().replace(microsecond=0) - app.config["startTime"]
+        )
+
+    if app.config["isGetFirstEndtag"]:
+        app.config["newEndtagTime"] = datetime.now().replace(microsecond=0)
+
     serial_number = request.form.get("serial")
     if serial_number:
         update_finished_status(serial_number)
@@ -141,8 +233,9 @@ def refresh_data():
         cnt_ib,
         cnt_nvidia,
         cnt_cuda,
-        cnt_end_tag,
     ) = count_access()
+
+    cnt_end_tag = app.config["counts_receive_serial_e"]
 
     data = {
         "cnt_start_tag": cnt_start_tag,
@@ -171,7 +264,7 @@ def get_state_table():
 
 @app.route("/")
 def index():
-    return render_template("monitor.html")
+    return render_template("monitor.html", interface=interface)
 
 
 if __name__ == "__main__":

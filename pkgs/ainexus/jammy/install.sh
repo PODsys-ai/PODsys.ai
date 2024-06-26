@@ -73,6 +73,7 @@ install_compute(){
     dpkg -i ./common/lib/*.deb >> $install_log
     dpkg -i ./common/tools/*.deb >> $install_log
     dpkg -i ./common/docker/*.deb >> $install_log
+    dpkg -i ./common/updates/*.deb >> $install_log
     echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Finish install deb------\e[0m"  >> $install_log
     
     # install MLNX
@@ -166,9 +167,30 @@ install_compute(){
     systemctl restart docker >> $install_log
     echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Finish ALL------\e[0m" >> $install_log
 
+    
+
 }
 
 install_compute "$1"
 SN=`dmidecode -t 1|grep Serial|awk -F : '{print $2}'|awk -F ' ' '{print $1}'`
 curl -X POST -d "serial=$SN" http://"$1":5000/receive_serial_e
+
+# Limit
+content=$(<"/etc/security/limits.conf")
+append_if_not_found() {
+    local pattern="$1"
+    if ! echo "$content" | grep -qF "$pattern"; then
+        echo "$pattern" >> /etc/security/limits.conf
+    fi
+}
+append_if_not_found "root soft nofile 65536"
+append_if_not_found "root hard nofile 65536"
+append_if_not_found "* soft nofile 65536"
+append_if_not_found "* hard nofile 65536"
+append_if_not_found "* soft stack unlimited"
+append_if_not_found "* soft nproc unlimited"
+append_if_not_found "* hard stack unlimited"
+append_if_not_found "* hard nproc unlimited"
+
+# conf_ip
 conf_ip

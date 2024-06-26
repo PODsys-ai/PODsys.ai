@@ -3,7 +3,6 @@ cd $(dirname $0)
 
 SN=`dmidecode -t 1|grep Serial|awk -F : '{print $2}'|awk -F ' ' '{print $1}'`
 curl -X POST -d "serial=$SN" http://"$1":5000/receive_serial_s
-
 HOSTNAME=`grep $SN ./iplist.txt|awk  '{print $2}'`
 network_interface=$(ip route | grep default | awk 'NR==1 {print $5}')
 
@@ -14,20 +13,20 @@ else
 fi
 sed -i "s/nic/$network_interface/g"  /autoinstall.yaml
 
-storage=sda
+storage=
 sata_list=$(lsblk -o NAME,TRAN | grep "sata" | awk '{print $1}')
 nvme_list=$(lsblk -o NAME,TRAN | grep "nvme" | awk '{print $1}')
 
-if [[ "$sata_list" =~ (^|[[:space:]])"$storage"($|[[:space:]]) ]] || [[ "$nvme_list" =~ (^|[[:space:]])"$storage"($|[[:space:]]) ]]; then
-  :
-else
-  if [ -n "$nvme_list" ]; then
-    newst=nvme0n1
-  else
-    newst=sda
-  fi
-  sed -i "s/$storage/$newst/g"  /autoinstall.yaml
+if ! echo "$sata_list $nvme_list" | grep -qw "$storage"; then
+        if [ -n "$nvme_list" ]; then
+                newst=nvme0n1
+                #sed -i "s/$storage/$newst/g"  /autoinstall.yaml
+        else
+                newst=sda
+                #sed -i "s/$storage/$newst/g"  /autoinstall.yaml
+        fi
 fi
+
 
 disk_list=$(lsblk -dno TYPE,NAME | grep -w disk)
 

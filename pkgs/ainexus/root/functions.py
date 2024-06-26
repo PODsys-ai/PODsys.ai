@@ -1,5 +1,22 @@
-import time
 import fcntl
+
+
+# install finished
+def install_finished():
+    with open("monitor.txt", "r+") as file:
+        fd = file.fileno()
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        try:
+            lines = file.readlines()
+            for i, line in enumerate(lines):
+                parts = line.strip().split()
+                if parts[7] == "F":
+                    lines[i] = " ".join(parts[:7]) + " W " + " ".join(parts[8:]) + "\n"
+            file.seek(0)
+            file.truncate()
+            file.writelines(lines)
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 # count for ipxe
@@ -35,8 +52,6 @@ def count_access():
                 nvidia_count += 1
             if "cuda" in line:
                 cuda_count += 1
-            if "endtag" in line:
-                endtag_count += 1
 
     return (
         Initrd_count // 2,
@@ -48,7 +63,6 @@ def count_access():
         ib_count // 2,
         nvidia_count // 2,
         cuda_count // 2,
-        endtag_count // 2,
     )
 
 
@@ -57,12 +71,12 @@ def count_dnsmasq():
     starttag_count = 0
     with open("/log/dnsmasq.log", "r") as file:
         for line in file:
-            if "ipxe_ubuntu2204/snponly.efi" in line:
+            if "ipxe_ubuntu2204/ubuntu2204.cfg" in line:
                 starttag_count += 1
-    return starttag_count // 2
+    return starttag_count
 
 
-# generation monitor.txt temple
+# generation monitor.txt temple and count lens
 def generation_monitor_temple():
     with open(
         "/var/www/html/workspace/iplist.txt", "r", encoding="utf-8"
@@ -80,10 +94,10 @@ def generation_monitor_temple():
             "IP Serial_Number HostName Installing Disk IB GPU Finished log\n"
         )
         new_file.writelines(processed_lines)
+    return len(lines)
 
 
 def update_installing_status(serial_number):
-    start_time = time.time()
     with open("monitor.txt", "r+") as file:
         try:
             fd = file.fileno()
@@ -101,22 +115,15 @@ def update_installing_status(serial_number):
                 file.seek(0)
                 file.writelines(lines)
                 file.truncate()
-                print(f"{serial_number} Start successfully.")
-            else:
-                print(f"{serial_number} not found in the monitor list.")
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
-    end_time = time.time()
-    print(f"Execution time: {end_time - start_time} seconds")
 
 
 def update_logname(serial, logname):
-    start_time = time.time()
+
     with open("monitor.txt", "r+") as file:
         fd = file.fileno()
-
         fcntl.flock(fd, fcntl.LOCK_EX)
-
         try:
             lines = file.readlines()
             updated_lines = []
@@ -129,19 +136,14 @@ def update_logname(serial, logname):
 
             file.seek(0)
             file.truncate()
-
             file.writelines(updated_lines)
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
-    end_time = time.time()
-    print(f"Execution time: {end_time - start_time} seconds")
 
 
 def update_diskstate(serial_number, diskstate):
-    start_time = time.time()
     with open("monitor.txt", "r+") as file:
         fd = file.fileno()
-
         fcntl.flock(fd, fcntl.LOCK_EX)
 
         try:
@@ -164,28 +166,18 @@ def update_diskstate(serial_number, diskstate):
             if found:
                 file.seek(0)
                 file.truncate()
-
                 file.writelines(lines)
-
-                print(f"{serial_number} get diskstate.")
-            else:
-                print(f"{serial_number} not found in the iplist.")
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
 
-    end_time = time.time()
-    print(f"Execution time: {end_time - start_time} seconds")
-
 
 def update_ibstate(serial_number, ibstate):
-
     with open("monitor.txt", "r+") as file:
         fd = file.fileno()
         fcntl.flock(fd, fcntl.LOCK_EX)
 
         try:
             lines = file.readlines()
-
             found = False
             for i, line in enumerate(lines):
                 parts = line.strip().split()
@@ -198,17 +190,12 @@ def update_ibstate(serial_number, ibstate):
                         lines[i] = (
                             " ".join(parts[:5]) + " W " + " ".join(parts[6:]) + "\n"
                         )
-            found = True
+                    found = True
 
             if found:
                 file.seek(0)
                 file.truncate()
-
                 file.writelines(lines)
-
-                print(f"{serial_number} get ibstate.")
-            else:
-                print(f"{serial_number} not found in the iplist.")
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
 
@@ -225,7 +212,7 @@ def update_gpustate(serial_number, gpustate):
             found = False
             for i, line in enumerate(lines):
                 parts = line.strip().split()
-                if len(parts) >= 6 and parts[1] == serial_number and parts[6] == "F":
+                if len(parts) >= 7 and parts[1] == serial_number and parts[6] == "F":
                     if gpustate == "ok":
                         lines[i] = (
                             " ".join(parts[:6]) + " T " + " ".join(parts[7:]) + "\n"
@@ -241,10 +228,6 @@ def update_gpustate(serial_number, gpustate):
                 file.truncate()
 
                 file.writelines(lines)
-
-                print(f"{serial_number} get gpustate.")
-            else:
-                print(f"{serial_number} not found in the iplist.")
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
 
@@ -252,7 +235,6 @@ def update_gpustate(serial_number, gpustate):
 def update_finished_status(serial_number):
     with open("monitor.txt", "r+") as file:
         fd = file.fileno()
-
         fcntl.flock(fd, fcntl.LOCK_EX)
 
         try:
@@ -261,7 +243,11 @@ def update_finished_status(serial_number):
             found = False
             for i, line in enumerate(lines):
                 parts = line.strip().split()
-                if len(parts) >= 7 and parts[1] == serial_number and parts[7] == "F":
+                if (
+                    len(parts) >= 7
+                    and parts[1] == serial_number
+                    and (parts[7] == "F" or parts[7] == "W")
+                ):
                     lines[i] = " ".join(parts[:7]) + " T " + " ".join(parts[8:]) + "\n"
                     found = True
 
@@ -271,8 +257,5 @@ def update_finished_status(serial_number):
 
                 file.writelines(lines)
 
-                print(f"{serial_number} Finished successfully.")
-            else:
-                print(f"{serial_number} not found in the iplist.")
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
