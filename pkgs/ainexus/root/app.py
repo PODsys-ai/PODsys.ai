@@ -10,7 +10,8 @@ from functions import (
     update_gpustate,
     update_ibstate,
     update_finished_status,
-    install_finished,
+    install_timeout,
+    get_len_iprange,
 )
 import os
 import psutil
@@ -42,7 +43,17 @@ app.config["countMachines"] = generation_monitor_temple()
 
 # Network Speed Monitor
 interface = os.getenv("manager_nic")
+start_ip = os.getenv("dhcp_s")
+end_ip = os.getenv("dhcp_e")
 current_year = datetime.now().year
+total_ips = get_len_iprange(start_ip, end_ip)
+
+
+@app.route("/updateusedip")
+def updateusedip():
+    with open("/var/lib/misc/dnsmasq.leases", "r") as file:
+        lines = file.readlines()
+    return jsonify({"usedip": len(lines)})
 
 
 @app.route("/speed")
@@ -96,7 +107,7 @@ def get_time():
         time4 = app.config["installTimeDiff"]
         if time3 < time4:
             app.config["isFinished"] = True
-            install_finished()
+            install_timeout()
 
     temp = app.config["installTime"]
     if app.config["installTime"] == 0:
@@ -264,7 +275,7 @@ def get_state_table():
 
 @app.route("/")
 def index():
-    return render_template("monitor.html", interface=interface)
+    return render_template("monitor.html", interface=interface, total_ips=total_ips)
 
 
 if __name__ == "__main__":

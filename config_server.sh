@@ -1,6 +1,8 @@
 #!/bin/bash
 cd $(dirname $0)
 
+username="nexus"
+
 if [ "$(id -u)" != "0" ]; then  echo "Error:please use sudo" &&  exit 1 ; fi
 
 if [ "$1" = "-nfsordma" ];then
@@ -69,17 +71,6 @@ elif  [ "$1" = "-ntp" ];then
              exit 1
        fi
        ./scripts/conf_server_ntp.sh
-elif [ "$1" = "-node_exporter" ];then
-        ./scripts/conf_node_exporter.sh
-
-elif [ "$1" = "-dcgm_exporter" ];then
-        ./scripts/conf_dcgm_exporter.sh
-
-elif [ "$1" = "-prometheus" ];then
-        ./scripts/conf_server_prometheus.sh
-
-elif [ "$1" = "-grafana" ];then
-        ./scripts/conf_server_grafana.sh
 
 elif [ "$1" = "-pre" ];then
         if [ $# -gt 1 ]; then
@@ -116,10 +107,10 @@ elif [ "$1" = "-pre" ];then
 
         for machine in "${machines[@]}"
         do
-            sudo -u nexus ssh-keygen -f "/home/nexus/.ssh/known_hosts" -R "$machine" > /dev/null 2>&1
-            sudo -u nexus ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "nexus@$machine" "echo 'SSH to $machine successful'" 2>/dev/null
+            sudo -u ${username} ssh-keygen -f "/home/${username}/.ssh/known_hosts" -R "$machine" > /dev/null 2>&1
+            sudo -u ${username} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${username}@$machine" "echo 'SSH to $machine successful'" 2>/dev/null
             if [ $? -eq 0 ]; then
-                sudo -u nexus ssh "nexus@$machine" "exit"
+                sudo -u ${username} ssh "${username}@$machine" "exit"
             else
                 echo "Failed to SSH to $machine"
                 sed -i "/$machine/d"  hosts.txt
@@ -128,24 +119,24 @@ elif [ "$1" = "-pre" ];then
 
         # ssh localhost
         manager_ip=$(cat config.yaml | grep "manager_ip" | cut -d ":" -f 2 | tr -d ' ')
-        sudo -u nexus ssh-keygen -f "/home/nexus/.ssh/known_hosts" -R "manager_ip" > /dev/null 2>&1
-        sudo -u nexus ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "nexus@$manager_ip" "echo 'SSH to $manager_ip successful'" 2>/dev/null
+        sudo -u ${username} ssh-keygen -f "/home/${username}/.ssh/known_hosts" -R "manager_ip" > /dev/null 2>&1
+        sudo -u ${username} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${username}@$manager_ip" "echo 'SSH to $manager_ip successful'" 2>/dev/null
         if [ $? -eq 0 ]; then
-               sudo -u nexus ssh "nexus@$manager_ip" "exit"
+               sudo -u ${username} ssh "${username}@$manager_ip" "exit"
                echo
         fi
 
         # mkdir for client
         folder="podsys"
-        sudo -u nexus pdsh -R ssh -w ^hosts.txt "[ -d $folder ] && echo 'Folder podsys already exists' || (mkdir -p $folder)"
+        sudo -u ${username} pdsh -R ssh -w ^hosts.txt "[ -d $folder ] && echo 'Folder podsys already exists' || (mkdir -p $folder)"
         # transfer files to client
-        sudo -u nexus pdcp -R ssh -w ^hosts.txt /home/nexus/.ssh/id_rsa     /home/nexus/.ssh/
-        sudo -u nexus pdcp -R ssh -w ^hosts.txt /home/nexus/.ssh/id_rsa.pub /home/nexus/.ssh/
-        sudo -u nexus pdcp -R ssh -w ^hosts.txt /home/nexus/.ssh/known_hosts /home/nexus/.ssh/
-        sudo -u nexus pdcp -R ssh -w ^hosts.txt -r scripts  $folder
-        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt  source /etc/profile
-        #restart opensm service
-#       systemctl restart opensmd
+        sudo -u ${username} pdcp -R ssh -w ^hosts.txt /home/${username}/.ssh/id_rsa     /home/${username}/.ssh/
+        sudo -u ${username} pdcp -R ssh -w ^hosts.txt /home/${username}/.ssh/id_rsa.pub /home/${username}/.ssh/
+        sudo -u ${username} pdcp -R ssh -w ^hosts.txt /home/${username}/.ssh/known_hosts /home/${username}/.ssh/
+        sudo -u ${username} pdcp -R ssh -w ^hosts.txt -r scripts  $folder
+        sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt  source /etc/profile
+
 else
         echo "Invalid arguement: $1"
+        echo "valid arguments: -pre, -nfs, -nfsordma, -nis, -IPoIB, -ldap, -stress, -ntp"
 fi

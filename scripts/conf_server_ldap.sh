@@ -14,11 +14,7 @@ echo "slapd slapd/password1 password $LDAP_ADMIN_PASSWORD" | debconf-set-selecti
 echo "slapd slapd/password2 password $LDAP_ADMIN_PASSWORD" | debconf-set-selections
 
 # Install the Openldap server package and its dependencies
-if dpkg -l ldap-utils libodbc2 slapd | grep -q "^ii"; then
-    echo "All required packages are already installed."
-else
-        dpkg -i ./ldap-server/*.deb
-fi
+dpkg -i ./ldap-server/*.deb
 
 # Verify whether the Openldap service has started
 systemctl status slapd
@@ -41,11 +37,7 @@ dpkg-reconfigure -f noninteractive slapd
 export DEBIAN_FRONTEND=noninteractive
 
 # Install the Openldap client package and its dependencies
-if dpkg -l ldap-utils libnss-ldapd libpam-ldapd nscd nslcd nslcd-utils oddjob | grep -q "^ii"; then
-    echo "All required packages are already installed."
-else
-    dpkg -i  ldap-client/*.deb
-fi
+dpkg -i  ldap-client/*.deb
 
 # Configuring the Openldap client
 # Modify /etc/nslcd.conf

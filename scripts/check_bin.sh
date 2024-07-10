@@ -36,5 +36,3 @@ check_pdsh()
     fi
 
 }
-
-

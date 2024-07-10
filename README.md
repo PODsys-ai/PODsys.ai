@@ -1,7 +1,6 @@
 # PODsys
 ## What is PODsys?
 
-
 PODsys focuses on AI cluster deployment scenarios, providing a complete toolchain including
         infrastructure environment installation, environment deployment, user management, system
         monitoring and resource scheduling, aiming to create an open-source, efficient, compatible and
@@ -32,21 +31,3 @@ To achieve these capabilities, PODsys integrates dozens of drivers, softwares, a
 ## Quick Start
 
 For the full package download, please visit https://podsys.ai/.
-
-Download from Hugging Face [PODsys](https://huggingface.co/podsysai/PODsys/tree/main)
-
-Download from Baidu Netdisk [PODsys](https://pan.baidu.com/s/1YlisXhSGGWVZv-vexuFGxg?pwd=0zq9)
-
-| Component               | Version                 |
-|------------------------|---------------------|
-| OS                               | Ubuntu Server 22.04.4 LTS     |
-| Linux kernel              | 5.15.0-94-generic            |
-| NVIDIA GPU Driver  | 535.161.08                       |
-| CUDA Toolkit             | 12.2.2                              |
-| NCCL                          | 2.20.3                             |
-| cuDNN                       | 9.0.0                                |
-| DCGM                        | 3.3.5                                 |
-| Docker Engine          | 26.1.1                               |
-| NVIDIA Container Toolkit | 1.14.6                           |
-| InfiniBand Driver       | MLNX_OFED_LINUX-23.10-2.1.3.1 |
-| PDSH                        | 2.31 (+debug)                   |

@@ -2,16 +2,10 @@
 cd "$(dirname "$0")"
 directory=$1
 if [ ! -d "$directory" ];then
-	mkdir -p "$directory"
+        mkdir -p "$directory"
 fi
 
-chmod 777 "$directory"
-
-if dpkg -l | grep -w -q nfs-kernel-server; then
-	echo
-else
-	dpkg -i ./nfs-server/*.deb
-fi
+chmod 755 "$directory"
 
 # Modify /etc/exports
 search_string1="$directory  *(rw,async,insecure,no_root_squash)"

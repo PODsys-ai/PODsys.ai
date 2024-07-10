@@ -10,10 +10,10 @@ fi
 domain=podsys
 hostname=$1
 if [ ! -f "/etc/defaultdomain" ];then
-	touch /etc/defaultdomain
+        touch /etc/defaultdomain
 fi
 if [ -z "$hostname" ];then
-	hostname=mu01
+        hostname=mu01
 fi
 echo $domain > /etc/defaultdomain
 nisdomainname $domain

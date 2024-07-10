@@ -9,19 +9,19 @@ ibip=`grep $SN /podsys/iplist.txt|awk '{print $6}'`
 echo $ibip
 isnicconfigbefore=$(grep -i "$networkcard" "/etc/netplan/00-installer-config.yaml")
 if [ -n "$ibip"  ]; then
-	if [ -z "$isnicconfigbefore" ]; then
-        	c=$(cat /etc/netplan/00-installer-config.yaml | grep -n version | awk -F ":" '{print $1}')
-        	sed -i "${c}i \    $networkcard:" /etc/netplan/00-installer-config.yaml
-        	c=$[$c+1]
-        	sed -i "${c}i \      dhcp4: no"  /etc/netplan/00-installer-config.yaml
-        	c=$[$c+1]
-        	sed -i "${c}i \      dhcp6: no"  /etc/netplan/00-installer-config.yaml
-        	c=$[$c+1]
-        	sed -i "${c}i \      addresses: [$ibip/24]"  /etc/netplan/00-installer-config.yaml
-        	netplan apply
-	else
-		echo "$networkcard has already been configured"
-	fi
+        if [ -z "$isnicconfigbefore" ]; then
+                c=$(cat /etc/netplan/00-installer-config.yaml | grep -n version | awk -F ":" '{print $1}')
+                sed -i "${c}i \    $networkcard:" /etc/netplan/00-installer-config.yaml
+                c=$[$c+1]
+                sed -i "${c}i \      dhcp4: no"  /etc/netplan/00-installer-config.yaml
+                c=$[$c+1]
+                sed -i "${c}i \      dhcp6: no"  /etc/netplan/00-installer-config.yaml
+                c=$[$c+1]
+                sed -i "${c}i \      addresses: [$ibip/24]"  /etc/netplan/00-installer-config.yaml
+                netplan apply
+        else
+                echo "$networkcard has already been configured"
+        fi
 else
-	echo "IPoIB is Empty"
+        echo "IPoIB is Empty"
 fi

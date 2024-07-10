@@ -10,11 +10,8 @@ pw=$2
 export DEBIAN_FRONTEND=noninteractive
 
 # Install the Openldap client package and its dependencies
-if dpkg -l ldap-utils libnss-ldapd libpam-ldapd nscd nslcd nslcd-utils oddjob | grep -q "^ii"; then
-    echo "All required packages are already installed."
-else
-    dpkg -i  ldap-client/*.deb
-fi
+
+dpkg -i  ldap-client/*.deb
 
 # Configuring the Openldap client
 # Modify /etc/nslcd.conf

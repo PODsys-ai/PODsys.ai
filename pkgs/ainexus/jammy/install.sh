@@ -73,6 +73,7 @@ install_compute(){
     dpkg -i ./common/lib/*.deb >> $install_log
     dpkg -i ./common/tools/*.deb >> $install_log
     dpkg -i ./common/docker/*.deb >> $install_log
+    dpkg -i ./common/nfs/*.deb >> $install_log
     dpkg -i ./common/updates/*.deb >> $install_log
     echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Finish install deb------\e[0m"  >> $install_log
     

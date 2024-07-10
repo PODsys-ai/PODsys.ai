@@ -1,22 +1,13 @@
 import fcntl
+import ipaddress
 
 
-# install finished
-def install_finished():
-    with open("monitor.txt", "r+") as file:
-        fd = file.fileno()
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        try:
-            lines = file.readlines()
-            for i, line in enumerate(lines):
-                parts = line.strip().split()
-                if parts[7] == "F":
-                    lines[i] = " ".join(parts[:7]) + " W " + " ".join(parts[8:]) + "\n"
-            file.seek(0)
-            file.truncate()
-            file.writelines(lines)
-        finally:
-            fcntl.flock(fd, fcntl.LOCK_UN)
+def get_len_iprange(start_ip, end_ip):
+    network_start = ipaddress.ip_network(f"{start_ip}/32")
+    network_end = ipaddress.ip_network(f"{end_ip}/32")
+    end_ip_addr = network_end.broadcast_address
+    total_ips = int(end_ip_addr) - int(network_start[0]) + 1
+    return total_ips
 
 
 # count for ipxe
@@ -30,7 +21,6 @@ def count_access():
     ib_count = 0
     nvidia_count = 0
     cuda_count = 0
-    endtag_count = 0
 
     with open("/log/access.log", "r") as file:
         for line in file:
@@ -152,10 +142,18 @@ def update_diskstate(serial_number, diskstate):
             found = False
             for i, line in enumerate(lines):
                 parts = line.strip().split()
-                if len(parts) >= 5 and parts[1] == serial_number and parts[4] == "F":
+                if (
+                    len(parts) >= 5
+                    and parts[1] == serial_number
+                    and (parts[4] == "F" or parts[4] == "W" or parts[4] == "M")
+                ):
                     if diskstate == "ok":
                         lines[i] = (
                             " ".join(parts[:4]) + " T " + " ".join(parts[5:]) + "\n"
+                        )
+                    elif diskstate == "nomatch":
+                        lines[i] = (
+                            " ".join(parts[:4]) + " M " + " ".join(parts[5:]) + "\n"
                         )
                     else:
                         lines[i] = (
@@ -181,7 +179,11 @@ def update_ibstate(serial_number, ibstate):
             found = False
             for i, line in enumerate(lines):
                 parts = line.strip().split()
-                if len(parts) >= 7 and parts[1] == serial_number and parts[5] == "F":
+                if (
+                    len(parts) >= 7
+                    and parts[1] == serial_number
+                    and (parts[5] == "F" or parts[5] == "W")
+                ):
                     if ibstate == "ok":
                         lines[i] = (
                             " ".join(parts[:5]) + " T " + " ".join(parts[6:]) + "\n"
@@ -212,7 +214,11 @@ def update_gpustate(serial_number, gpustate):
             found = False
             for i, line in enumerate(lines):
                 parts = line.strip().split()
-                if len(parts) >= 7 and parts[1] == serial_number and parts[6] == "F":
+                if (
+                    len(parts) >= 7
+                    and parts[1] == serial_number
+                    and (parts[6] == "F" or parts[6] == "W")
+                ):
                     if gpustate == "ok":
                         lines[i] = (
                             " ".join(parts[:6]) + " T " + " ".join(parts[7:]) + "\n"
@@ -257,5 +263,23 @@ def update_finished_status(serial_number):
 
                 file.writelines(lines)
 
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+
+
+# Installation Timeout
+def install_timeout():
+    with open("monitor.txt", "r+") as file:
+        fd = file.fileno()
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        try:
+            lines = file.readlines()
+            for i, line in enumerate(lines):
+                parts = line.strip().split()
+                if parts[7] == "F":
+                    lines[i] = " ".join(parts[:7]) + " W " + " ".join(parts[8:]) + "\n"
+            file.seek(0)
+            file.truncate()
+            file.writelines(lines)
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)

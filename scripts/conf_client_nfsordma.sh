@@ -1,11 +1,6 @@
 #!/bin/bash
 cd $(dirname "$0")
 
-if dpkg -l | grep -w -q nfs-common; then
-	echo
-else
-	dpkg -i nfs-client/*.deb
-fi
 
 # Fix nfs-common not starting properly
 rm /lib/systemd/system/nfs-common.service >/dev/null 2>&1
@@ -32,12 +27,12 @@ IPoIB=$1
 server_directory=$2
 client_directory=$3
 if [ -z "$IPoIB" ];then
-	echo "Please input nfs_server's IPoIB."
+        echo "Please input nfs_server's IPoIB."
 fi
 if [ ! -d "$client_directory" ];then
-	mkdir -p $client_directory
+        mkdir -p $client_directory
 fi
 
-chmod 777 "$client_directory"
+chmod 755 "$client_directory"
 
 mount -o rdma,port=20049 $IPoIB:$server_directory $client_directory

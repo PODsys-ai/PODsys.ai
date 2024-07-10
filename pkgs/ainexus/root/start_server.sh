@@ -5,24 +5,28 @@ start_flask_app() {
         nohup python3 /root/app.py -h 0.0.0.0 > /dev/null 2>&1 &
 }
 
-echo -e "\033[43;31m "Welcome to the Nexus cluster deployment software"\033[0m"
+CUDA=cuda_12.2.2_535.104.05_linux.run
+ISO=ubuntu-22.04.4-live-server-amd64.iso
 
-if [ -z "$compute_storage" ]; then
-  :
-else
-  sed -i "s/storage=[^ ]*/storage=$compute_storage/g" /var/www/html/jammy/preseed.sh
-fi
+echo -e "\033[43;31m "Welcome to the cluster deployment software v2.4"\033[0m"
+echo "  ____     ___    ____    ____   __   __  ____  ";
+echo " |  _ \   / _ \  |  _ \  / ___|  \ \ / / / ___| ";
+echo " | |_) | | | | | | | | | \___ \   \ V /  \___ \ ";
+echo " |  __/  | |_| | | |_| |  ___) |   | |    ___) |";
+echo " |_|      \___/  |____/  |____/    |_|   |____/ ";
+echo 
 
-echo "id_rsa.pub: $NEW_PUB_KEY"
+echo -e "\033[31mdhcp-config : /etc/dnsmasq.conf\033[0m"
+echo -e "\033[31muser-data   : /var/www/html/jammy/user-data\033[0m"
+
 compute_encrypted_password=$(printf "${compute_passwd}" | openssl passwd -6 -salt 'FhcddHFVZ7ABA4Gi' -stdin)
-
 
 ################################ get /etc/dnsmasq.conf
 dnsmasq_conf=$(cat << EOF
 port=5353
 interface=$manager_nic
 bind-interfaces
-dhcp-range=${pxe_s},${pxe_e},255.255.0.0,12h
+dhcp-range=${dhcp_s},${dhcp_e},255.255.0.0,6h
 dhcp-match=set:bios,option:client-arch,0
 dhcp-match=set:efi-x86_64,option:client-arch,7
 dhcp-match=set:efi-x86_64,option:client-arch,9
@@ -40,7 +44,7 @@ dnsmasq_conf_ipxe=$(cat << EOF
 port=5353
 interface=$manager_nic
 bind-interfaces
-dhcp-range=${pxe_s},${pxe_e},255.255.0.0,12h
+dhcp-range=${dhcp_s},${dhcp_e},255.255.0.0,12h
 dhcp-match=set:bios,option:client-arch,0
 dhcp-match=set:x64-uefi,option:client-arch,7
 dhcp-match=set:x64-uefi,option:client-arch,9
@@ -88,7 +92,7 @@ export linux_gfx_mode
 
 menuentry 'Ubuntu 22.04.4 autoinstall' {
         gfxmode \$linux_gfx_mode
-        linux /vmlinuz \$vt_handoff root=/dev/ram0 ramdisk_size=2000000 ip=dhcp url=http://${manager_ip}:8800/workspace/ubuntu-22.04.4-live-server-amd64.iso autoinstall ds=nocloud-net\;s=http://${manager_ip}:8800/jammy/ ---
+        linux /vmlinuz \$vt_handoff root=/dev/ram0 ramdisk_size=2000000 ip=dhcp url=http://${manager_ip}:8800/workspace/${ISO} autoinstall ds=nocloud-net\;s=http://${manager_ip}:8800/jammy/ ---
         initrd /initrd
 }
 EOF
@@ -109,7 +113,7 @@ MENU COLOR BORDER   37;40 #ffffffff #00000000
 LABEL Ubuntu Server 22.04.4
     kernel /vmlinuz
     initrd /initrd
-    append root=/dev/ram0 ip=dhcp ramdisk_size=2000000 url=http://${manager_ip}:8800/workspace/ubuntu-22.04.4-live-server-amd64.iso autoinstall ds=nocloud-net;s=http://${manager_ip}:8800/jammy/  cloud-config-url=/dev/null
+    append root=/dev/ram0 ip=dhcp ramdisk_size=2000000 url=http://${manager_ip}:8800/workspace/${ISO} autoinstall ds=nocloud-net;s=http://${manager_ip}:8800/jammy/  cloud-config-url=/dev/null
 EOF
 )
 
@@ -140,7 +144,7 @@ goto \${selected}
 :install-os
 set server http://${manager_ip}:8800/
 initrd \${server}jammy/initrd
-kernel \${server}jammy/vmlinuz initrd=initrd ip=dhcp url=\${server}workspace/ubuntu-22.04.4-live-server-amd64.iso autoinstall ds=nocloud-net;s=\${server}jammy/ root=/dev/ram0 cloud-config-url=/dev/null
+kernel \${server}jammy/vmlinuz initrd=initrd ip=dhcp url=\${server}workspace/${ISO} autoinstall ds=nocloud-net;s=\${server}jammy/ root=/dev/ram0 cloud-config-url=/dev/null
 boot
 EOF
 )
@@ -213,7 +217,7 @@ autoinstall:
     - wget http://${manager_ip}:8800/workspace/iplist.txt || true
     - wget http://${manager_ip}:8800/jammy/preseed.sh
     - chmod 755 preseed.sh
-    - bash preseed.sh ${manager_ip}
+    - bash preseed.sh ${manager_ip} ${compute_storage}
   late-commands:
     - curtin in-target --target=/target -- wget http://${manager_ip}:8800/jammy/install.sh
     - curtin in-target --target=/target -- wget http://${manager_ip}:8800/workspace/iplist.txt || true
@@ -221,21 +225,21 @@ autoinstall:
     - curtin in-target --target=/target -- tar -xzf common.tgz
     - curtin in-target --target=/target -- bash -c 'if [ "\$(lspci | grep -i "Mellanox")" ]; then wget http://${manager_ip}:8800/workspace/ib.tgz; fi'
     - curtin in-target --target=/target -- bash -c 'if [ "\$(lspci | grep -i "NVIDIA")" ]; then wget http://${manager_ip}:8800/workspace/nvidia.tgz; fi'
-    - curtin in-target --target=/target -- bash -c 'if [ "\$(lspci | grep -i "NVIDIA")" ]; then wget http://${manager_ip}:8800/workspace/cuda_12.2.2_535.104.05_linux.run; fi'
+    - curtin in-target --target=/target -- bash -c 'if [ "\$(lspci | grep -i "NVIDIA")" ]; then wget http://${manager_ip}:8800/workspace/${CUDA}; fi'
     - mkdir /target/root/.ssh && echo "${NEW_PUB_KEY}" >/target/root/.ssh/authorized_keys
-    - dpkg -i /target/common/nfs-client/*.deb || true
+    - dpkg -i /target/common/nfs/*.deb || true
     - rm /lib/systemd/system/nfs-common.service  || true
     - systemctl daemon-reload || true
     - systemctl start nfs-common || true
     - curtin in-target --target=/target -- mkdir -p podsys
     - mount -t nfs -o vers=3 ${manager_ip}:/home/nexus/podsys/log /target/podsys || true
     - curtin in-target --target=/target -- chmod 755 install.sh || true
-    - curtin in-target --target=/target -- chmod 755 cuda_12.2.2_535.104.05_linux.run || true
+    - curtin in-target --target=/target -- chmod 755 ${CUDA} || true
     - curtin in-target --target=/target -- /install.sh ${manager_ip}
     - umount /target/podsys || true
     - curtin in-target --target=/target -- rm -rf common || true
     - curtin in-target --target=/target -- rm -f  common.tgz || true
-    - curtin in-target --target=/target -- rm -f  cuda_12.2.2_535.104.05_linux.run || true
+    - curtin in-target --target=/target -- rm -f  ${CUDA} || true
     - curtin in-target --target=/target -- rm -f  install.sh || true
     - cp /autoinstall.yaml /target/podsys/autoinstall.yaml || true
     - mv /target/iplist.txt /target/podsys/iplist.txt || true
@@ -330,9 +334,7 @@ echo -e "$userdata" >> /var/www/html/jammy/user-data
 echo
 sleep 1
 echo "starting services: "
-if [ "$enapache" = "yes" ]; then
-   service apache2 start
-fi
+service apache2 start
 service dnsmasq start
 echo
 sleep 1

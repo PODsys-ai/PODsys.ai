@@ -1,4 +1,4 @@
-#!/bin/bash	
+#!/bin/bash
 echo -n "SATA: "
 sata_devices=$(lsblk -o NAME,TRAN | grep -i "^sd" | awk '{printf "%s ", $1}')
 if [ -z "$sata_devices" ]; then
