@@ -46,13 +46,15 @@ elif [ "$1" = "-nfs" ]; then
                 echo "Please enter an absolute path"
         fi
 
+elif [ "$1" = "-beegfs" ]; then
+        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_beegfs.sh
 elif [ "$1" = "-nis" ]; then
-        if [ $# -lt 1 ]; then
+        if [ $# -lt 2 ]; then
                 echo "Error: Insufficient arguements provided."
                 echo "Usage:sudo $0 -nis <nis_server_ip> "
                 exit 1
         fi
-        
+
         #$2 nis server IP
         ip_info=$(ip a | grep -E "inet\s$2\/[0-9]+")
         if [ -z "$ip_info" ]; then
