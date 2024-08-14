@@ -121,6 +121,28 @@ def get_time():
 def favicon():
     return "", 204
 
+# debug mode
+@app.route("/debug", methods=["POST"])
+def debug():
+    serial_number = request.form.get("serial")
+    lsblk_output = request.form.get("lsblk")
+    ipa_output = request.form.get("ipa")
+
+    if serial_number:
+        with open(f"/log/{serial_number}_debug.log", "a") as log_file:
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_file.write(current_time + "\n")
+            log_file.write("---------------Debug-info---------------" + "\n" + "\n")
+            if lsblk_output:
+                log_file.write("--------lsblk-------" + "\n")
+                log_file.write(lsblk_output + "\n" + "\n")
+            if ipa_output:
+                log_file.write("--------ip a-------" + "\n")
+                log_file.write(ipa_output + "\n" + "\n")
+            log_file.write("---------------Debug-end---------------" + "\n" + "\n")
+
+    return "Get Debug Info", 200
+
 
 # get POST
 @app.route("/receive_serial_s", methods=["POST"])
