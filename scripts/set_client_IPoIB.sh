@@ -17,7 +17,7 @@ if [ -n "$ibip"  ]; then
                 c=$[$c+1]
                 sed -i "${c}i \      dhcp6: no"  /etc/netplan/00-installer-config.yaml
                 c=$[$c+1]
-                sed -i "${c}i \      addresses: [$ibip/24]"  /etc/netplan/00-installer-config.yaml
+                sed -i "${c}i \      addresses: [$ibip]"  /etc/netplan/00-installer-config.yaml
                 netplan apply
         else
                 echo "$networkcard has already been configured"
