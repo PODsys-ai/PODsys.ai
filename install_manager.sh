@@ -8,6 +8,11 @@ hostname=$(hostname)
 timestamp=$(date +%Y-%m-%d_%H-%M-%S)
 install_log="./log/${hostname}_install_${timestamp}.log"
 
+CUDA=cuda_12.2.2_535.104.05_linux.run
+IB=MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-ext
+NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.183.06.run
+
+
 # install common deb
 echo -e "\033[32m---Install deb---\033[0m"
 tar -xzf workspace/common.tgz > /dev/null &
@@ -38,9 +43,8 @@ if lspci | grep -i "Mellanox"; then
             sleep 2
         done
         echo
-        ./ib/MLNX_OFED_LINUX-23.10-2.1.3.1-ubuntu22.04-ext/mlnxofedinstall \
+        ./ib/${IB}/mlnxofedinstall \
         --without-fw-update  --with-nfsrdma --all --force >> $install_log
-#       /etc/init.d/openibd restart >> $install_log
         systemctl enable openibd    >> $install_log
         systemctl enable opensmd     >> $install_log
         echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Finish install MLNX------\e[0m"  >> $install_log
@@ -64,9 +68,8 @@ if lspci | grep -i "3D controller: NVIDIA"; then
         echo "blacklist nouveau" |  tee /etc/modprobe.d/nouveau-blacklist.conf
         echo "options nouveau modeset=0" |  tee -a /etc/modprobe.d/nouveau-blacklist.conf
         update-initramfs -u >> $install_log
-        ./nvidia/NVIDIA-Linux-x86_64-535.161.08.run --accept-license --no-questions \
+        ./nvidia/${NVIDIA_DRIVER} --accept-license --no-questions \
         --no-install-compat32-libs --ui=none --disable-nouveau >> $install_log
-        nvidia-smi -pm 1 >> $install_log
         echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Finish install NVIDIA 3D controller Driver------\e[0m"  >> $install_log
 
         # Load nvidia_peermem module
@@ -82,18 +85,37 @@ if lspci | grep -i "3D controller: NVIDIA"; then
         echo "" >> /etc/systemd/system/load-nvidia-peermem.service
         echo '[Install]' >> /etc/systemd/system/load-nvidia-peermem.service
         echo 'WantedBy=multi-user.target' >> /etc/systemd/system/load-nvidia-peermem.service
+
+        # Enable nvidia-persistenced
+        echo -e  "\033[32m---Enable nvidia-persistenced---\033[0m"
+        echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Enable nvidia-persistenced------\e[0m"  >> $install_log
+        touch /etc/systemd/system/nvidia-persistenced.service
+        echo '[Unit]' >> /etc/systemd/system/nvidia-persistenced.service
+        echo 'Description=Enable nvidia-persistenced' >> /etc/systemd/system/nvidia-persistenced.service
+        echo "" >> /etc/systemd/system/nvidia-persistenced.service
+        echo '[Service]' >> /etc/systemd/system/nvidia-persistenced.service
+        echo 'Type=oneshot' >> /etc/systemd/system/nvidia-persistenced.service
+        echo 'ExecStart=/usr/bin/nvidia-smi -pm 1' >> /etc/systemd/system/nvidia-persistenced.service
+        echo 'RemainAfterExit=yes' >> /etc/systemd/system/nvidia-persistenced.service
+        echo "" >> /etc/systemd/system/nvidia-persistenced.service
+        echo '[Install]' >> /etc/systemd/system/nvidia-persistenced.service
+        echo 'WantedBy=default.target' >> /etc/systemd/system/nvidia-persistenced.service
+
         systemctl daemon-reload             >> $install_log
         systemctl enable load-nvidia-peermem
         systemctl start load-nvidia-peermem >> $install_log
+        systemctl enable nvidia-persistenced.service
+        systemctl start nvidia-persistenced.service >> $install_log
 
-        # Install CUDA-12.2.2
-        echo -e "\033[32m---Install CUDA-12.2.2---\033[0m"
-        echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Start install CUDA-12.2.2------\e[0m"  >> $install_log
-        ./workspace/cuda_12.2.2_535.104.05_linux.run --silent --toolkit >> $install_log
+
+        # Install CUDA
+        echo -e "\033[32m---Install CUDA---\033[0m"
+        echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Start install CUDA------\e[0m"  >> $install_log
+        ./workspace/${CUDA} --silent --toolkit >> $install_log
         echo 'export PATH=$PATH:/usr/local/cuda/bin' >> /etc/profile
         echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64' >> /etc/profile
         source  /etc/profile
-        echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Finish install CUDA-12.2.2------\e[0m"  >> $install_log
+        echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Finish install CUDA------\e[0m"  >> $install_log
 
         # Install nv docker
         echo -e "\033[32m---Install nv docker---\033[0m"
