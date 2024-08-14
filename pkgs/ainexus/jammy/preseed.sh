@@ -8,6 +8,14 @@ SN=`dmidecode -t 1|grep Serial|awk -F : '{print $2}'|awk -F ' ' '{print $1}'`
 curl -X POST -d "serial=$SN" http://"${G_SERVER_IP}":5000/receive_serial_s
 HOSTNAME=`grep $SN ./iplist.txt|awk  '{print $2}'`
 
+if [ $# -ge 3 ] && [ "$3" = "debug" ]; then
+    lsblk_output=$(lsblk)
+    ipa_output=$(ip a)
+    curl -X POST -d "serial=$SN&lsblk=$lsblk_output&ipa=$ipa_output" http://"$G_SERVER_IP":5000/debug
+    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config.d/50-cloud-init.conf
+    systemctl restart ssh
+fi
+
 # preseed network config
 network_interface=$(ip route | grep default | awk 'NR==1 {print $5}')
 if [ -n "$HOSTNAME" ];then
