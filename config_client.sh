@@ -48,6 +48,7 @@ elif [ "$1" = "-nfs" ]; then
 
 elif [ "$1" = "-beegfs" ]; then
         sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_beegfs.sh
+
 elif [ "$1" = "-nis" ]; then
         if [ $# -lt 2 ]; then
                 echo "Error: Insufficient arguements provided."
@@ -84,20 +85,10 @@ elif [ "$1" = "-ldap" ]; then
         # $3 represents the password of Openldap
         sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_ldap.sh $2 $3
 
-elif [ "$1" = "-stress" ]; then
-        if [ "$2" = "-k" ]; then
-                sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt pkill stress
-        else
-                sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/stress_client.sh
-        fi
-elif [ "$1" = "-ntp" ]; then
-        if [ $# -lt 2 ]; then
-                echo "Error: Insufficient arguments provided."
-                echo "Usage:sudo $0 -ntp server_ip"
-                exit 1
-        fi
-        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_ntp.sh $2
+elif [ "$1" = "-health-check" ]; then
+        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/health-checks.sh
+
 else
         echo "Invalid argument: $1"
-        echo "valid arguments: -nfs, -nfsordma, -nis, -IPoIB, -ldap"
+        echo "valid arguments: -nfs, -nfsordma, -nis, -IPoIB, -ldap, -health-check"
 fi

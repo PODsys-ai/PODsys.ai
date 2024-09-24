@@ -31,7 +31,7 @@ if docker ps -a --format '{{.Image}}' | grep -q "ainexus:v2.0"; then
     docker rmi ainexus:v2.0 > /dev/null
 fi
 
-docker import pkgs/ainexus-2.4c ainexus:v2.0 > /dev/null &
+docker import pkgs/ainexus-2.6 ainexus:v2.0 > /dev/null &
 pid=$!
 while ps -p $pid > /dev/null; do
     echo -n "*"

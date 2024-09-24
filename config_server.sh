@@ -64,14 +64,6 @@ elif [ "$1" = "-ldap" ];then
          # $3 represents the password for Openldap
          ./scripts/conf_server_ldap.sh $2 $3
 
-elif  [ "$1" = "-ntp" ];then
-       if [ $# -lt 1 ]; then
-             echo "Error: Insufficient arguments provided."
-             echo "Usage:sudo $0 -ntp"
-             exit 1
-       fi
-       ./scripts/conf_server_ntp.sh
-
 elif [ "$1" = "-pre" ];then
         if [ $# -gt 1 ]; then
               echo "Error: Too many arguments provided."
@@ -138,5 +130,5 @@ elif [ "$1" = "-pre" ];then
 
 else
         echo "Invalid arguement: $1"
-        echo "valid arguments: -pre, -nfs, -nfsordma, -nis, -IPoIB, -ldap, -stress, -ntp"
+        echo "valid arguments: -pre, -nfs, -nfsordma, -nis, -IPoIB, -ldap"
 fi

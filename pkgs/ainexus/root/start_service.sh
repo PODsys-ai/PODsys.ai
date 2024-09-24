@@ -8,7 +8,7 @@ start_flask_app() {
 CUDA=cuda_12.2.2_535.104.05_linux.run
 ISO=ubuntu-22.04.4-live-server-amd64.iso
 
-echo -e "\033[43;31m "Welcome to the cluster deployment software v2.4"\033[0m"
+echo -e "\033[43;31m "Welcome to the cluster deployment software v2.6"\033[0m"
 echo "  ____     ___    ____    ____   __   __  ____  ";
 echo " |  _ \   / _ \  |  _ \  / ___|  \ \ / / / ___| ";
 echo " | |_) | | | | | | | | | \___ \   \ V /  \___ \ ";
