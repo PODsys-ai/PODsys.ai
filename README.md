@@ -1,6 +1,6 @@
 # PODsys
 ## Version
-v2.5
+v2.6
 ## What is PODsys?
 ** AI Cluster Deployment Software Stack **
 ## Quick Start
