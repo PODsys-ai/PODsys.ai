@@ -12,7 +12,6 @@ CUDA=cuda_12.2.2_535.104.05_linux.run
 IB=MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-ext
 NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.183.06.run
 
-
 # install common deb
 echo -e "\033[32m---Install deb---\033[0m"
 tar -xzf workspace/common.tgz > /dev/null &
@@ -157,27 +156,35 @@ fi
 
 systemctl restart docker >> $install_log
 
-#
-content=$(<"/etc/security/limits.conf")
 
-append_if_not_found() {
+set_release() {
+    current_datetime=$(date +%Y-%m-%d-%H-%M-%S)
+    echo "PODsys_Version=\"2.7\"" > /etc/podsys-release
+    echo "PODsys_Deployment_DATE=\"$current_datetime\"" >> /etc/podsys-release
+}
+
+set_limit() {
     local pattern="$1"
+    content=$(<"/etc/security/limits.conf")
     if ! echo "$content" | grep -qF "$pattern"; then
         echo "$pattern" >> /etc/security/limits.conf
     fi
 }
 
-append_if_not_found "root soft nofile 65536"
-append_if_not_found "root hard nofile 65536"
-append_if_not_found "* soft nofile 65536"
-append_if_not_found "* hard nofile 65536"
 
-append_if_not_found "* soft stack unlimited"
-append_if_not_found "* soft nproc unlimited"
-append_if_not_found "* hard stack unlimited"
-append_if_not_found "* hard nproc unlimited"
+# set_limits
+set_limit "root soft nofile 65536"
+set_limit "root hard nofile 65536"
+set_limit "* soft nofile 65536"
+set_limit "* hard nofile 65536"
+set_limit "* soft stack unlimited"
+set_limit "* soft nproc unlimited"
+set_limit "* hard stack unlimited"
+set_limit "* hard nproc unlimited"
 
-# end
+# set release
+set_release
+
 # Check if user entered yes
 read -p "Do you want to reboot now? Enter yes or no: " choice
 if [ "$choice" = "yes" ]; then

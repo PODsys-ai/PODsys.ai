@@ -1,6 +1,20 @@
 #!/bin/bash
 cd $(dirname $0)
 
+set_release() {
+    current_datetime=$(date +%Y-%m-%d-%H-%M-%S)
+    echo "PODsys_Version=\"2.7\"" > /etc/podsys-release
+    echo "PODsys_Deployment_DATE=\"$current_datetime\"" >> /etc/podsys-release
+}
+
+set_limit() {
+    local pattern="$1"
+    content=$(<"/etc/security/limits.conf")
+    if ! echo "$content" | grep -qF "$pattern"; then
+        echo "$pattern" >> /etc/security/limits.conf
+    fi
+}
+
 conf_ip() {
     if [ -f "/iplist.txt" ]; then
         SN=`dmidecode -t 1|grep Serial|awk -F : '{print $2}'|awk -F ' ' '{print $1}'`
@@ -8,7 +22,7 @@ conf_ip() {
         GATEWAY=`grep $SN /iplist.txt|awk  '{print $4}'`
         DNS=`grep $SN /iplist.txt|awk '{print $5}'`
         docker0_ip=`grep $SN /iplist.txt|awk '{print $7}'`
-        cp /etc/netplan/00-installer-config.yaml /etc/netplan/00-installer-config.yaml.bak
+        
         if [ -n "$IP" ];then
                 h=$(cat /etc/netplan/00-installer-config.yaml | grep -n dhcp | awk -F ":" '{print $1}' | awk 'NR==1 {print}')
                 sed -i ${h}s/true/false/ /etc/netplan/00-installer-config.yaml
@@ -34,7 +48,6 @@ conf_ip() {
                 else
                         echo "$SN NO DNS" >> /podsys/conf_ip.log
                 fi
-                netplan apply
         else
                 echo "$SN IP is Empty" >> /podsys/conf_ip.log
         fi
@@ -54,6 +67,9 @@ conf_ip() {
     else
         echo "$SN No iplist file" >> /podsys/conf_ip.log
     fi
+    # disable cloud init networkconfig
+    echo "network: {config: disabled}" >> /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    netplan apply
 }
 
 install_compute(){
@@ -193,26 +209,23 @@ install_compute(){
 
 }
 
+# install compute
 install_compute "$1"
 SN=`dmidecode -t 1|grep Serial|awk -F : '{print $2}'|awk -F ' ' '{print $1}'`
 curl -X POST -d "serial=$SN" http://"$1":5000/receive_serial_e
 
-# Limit
-content=$(<"/etc/security/limits.conf")
-append_if_not_found() {
-    local pattern="$1"
-    if ! echo "$content" | grep -qF "$pattern"; then
-        echo "$pattern" >> /etc/security/limits.conf
-    fi
-}
-append_if_not_found "root soft nofile 65536"
-append_if_not_found "root hard nofile 65536"
-append_if_not_found "* soft nofile 65536"
-append_if_not_found "* hard nofile 65536"
-append_if_not_found "* soft stack unlimited"
-append_if_not_found "* soft nproc unlimited"
-append_if_not_found "* hard stack unlimited"
-append_if_not_found "* hard nproc unlimited"
+# set limits
+set_limit "root soft nofile 65536"
+set_limit "root hard nofile 65536"
+set_limit "* soft nofile 65536"
+set_limit "* hard nofile 65536"
+set_limit "* soft stack unlimited"
+set_limit "* soft nproc unlimited"
+set_limit "* hard stack unlimited"
+set_limit "* hard nproc unlimited"
 
 # conf_ip
 conf_ip
+
+# set release
+set_release

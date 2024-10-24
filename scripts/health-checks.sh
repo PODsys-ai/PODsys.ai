@@ -13,8 +13,8 @@ nfs_version=$(dpkg-query -W -f='${Version}' nfs-kernel-server 2>/dev/null)
 nfs_status=$(systemctl is-active nfs-server 2>/dev/null)
 
 # expected
-expected_system_version="Ubuntu 22.04.4 LTS"
-expected_kernel_version="5.15.0-94-generic"
+expected_system_version="Ubuntu 22.04.5 LTS"
+expected_kernel_version="5.15.0-119-generic"
 expected_gpu_driver_version="535.183.06"
 expected_cuda_version="12.2"
 expected_docker_version="27.2.1"
@@ -100,3 +100,4 @@ fi
 #used_mem=$((total_mem - free_mem))
 #mem_usage=$((used_mem * 100 / total_mem))
 #echo "Total Memory: ${total_mem} MB, Free Memory: ${free_mem} MB, Used Memory: ${used_mem} MB, Memory Usage: ${mem_usage}%"
+

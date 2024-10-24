@@ -130,5 +130,5 @@ elif [ "$1" = "-pre" ];then
 
 else
         echo "Invalid arguement: $1"
-        echo "valid arguments: -pre, -nfs, -nfsordma, -nis, -IPoIB, -ldap"
+	echo "valid arguments: -pre, -nfs, -nfsordma, -nis, -IPoIB, -ldap"
 fi

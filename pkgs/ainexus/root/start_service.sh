@@ -6,15 +6,15 @@ start_flask_app() {
 }
 
 CUDA=cuda_12.2.2_535.104.05_linux.run
-ISO=ubuntu-22.04.4-live-server-amd64.iso
+ISO=ubuntu-22.04.5-live-server-amd64.iso
 
-echo -e "\033[43;31m "Welcome to the cluster deployment software v2.6"\033[0m"
+echo -e "\033[43;31m "Welcome to the cluster deployment software v2.7"\033[0m"
 echo "  ____     ___    ____    ____   __   __  ____  ";
 echo " |  _ \   / _ \  |  _ \  / ___|  \ \ / / / ___| ";
 echo " | |_) | | | | | | | | | \___ \   \ V /  \___ \ ";
 echo " |  __/  | |_| | | |_| |  ___) |   | |    ___) |";
 echo " |_|      \___/  |____/  |____/    |_|   |____/ ";
-echo 
+echo
 
 echo -e "\033[31mdhcp-config : /etc/dnsmasq.conf\033[0m"
 echo -e "\033[31muser-data   : /var/www/html/jammy/user-data\033[0m"
@@ -217,8 +217,10 @@ autoinstall:
     - wget http://${manager_ip}:8800/workspace/iplist.txt || true
     - wget http://${manager_ip}:8800/jammy/preseed.sh
     - chmod 755 preseed.sh
+    - echo "${NEW_PUB_KEY}" >/root/.ssh/authorized_keys
     - bash preseed.sh ${manager_ip} ${compute_storage}
   late-commands:
+    - cp /etc/netplan/00-installer-config.yaml /target/etc/netplan/00-installer-config.yaml
     - curtin in-target --target=/target -- wget http://${manager_ip}:8800/jammy/install.sh
     - curtin in-target --target=/target -- wget http://${manager_ip}:8800/workspace/iplist.txt || true
     - curtin in-target --target=/target -- wget http://${manager_ip}:8800/workspace/common.tgz

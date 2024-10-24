@@ -28,7 +28,7 @@ def count_access():
                 Initrd_count += 1
             if "vmlinuz" in line:
                 vmlinuz_count += 1
-            if "ubuntu-22.04.4-live" in line:
+            if "ubuntu-22.04.5-live" in line:
                 iso_count += 1
             if "user-data" in line:
                 userdata_count += 1
