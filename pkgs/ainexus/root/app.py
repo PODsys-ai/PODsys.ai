@@ -11,6 +11,7 @@ from functions import (
     update_ibstate,
     update_finished_status,
     install_timeout,
+    parse_config,
     get_len_iprange,
 )
 import os
@@ -40,13 +41,20 @@ app.config["isFinished"] = False
 # generation monitor.txt temple and Count the total number of machines to be installed
 app.config["countMachines"] = generation_monitor_temple()
 
-
-# Network Speed Monitor
-interface = os.getenv("manager_nic")
-start_ip = os.getenv("dhcp_s")
-end_ip = os.getenv("dhcp_e")
 current_year = datetime.now().year
-total_ips = get_len_iprange(start_ip, end_ip)
+
+# Network Speed DHCP config.yaml
+config_data = parse_config('/var/www/html/workspace/config.yaml')
+
+interface = config_data['manager_nic']
+dhcp_s = config_data['dhcp_s']
+dhcp_e = config_data['dhcp_e']
+manger_ip = config_data['manager_ip']
+compute_storage = config_data['compute_storage']
+compute_passwd = config_data['compute_passwd']
+
+
+total_ips = get_len_iprange(dhcp_s, dhcp_e)
 
 
 @app.route("/updateusedip")
@@ -77,8 +85,8 @@ def get_speed():
 def get_time():
 
     if not app.config["isGetStartTime"]:
-        if os.path.exists("/log/dnsmasq.log"):
-            with open("/log/dnsmasq.log", "r") as file:
+        if os.path.exists("/var/www/html/workspace/log/dnsmasq.log"):
+            with open("/var/www/html/workspace/log/dnsmasq.log", "r") as file:
                 for line in file:
                     if "ipxe_ubuntu2204/ubuntu2204.cfg" in line:
                         time_regex = r"(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})"
@@ -129,7 +137,7 @@ def debug():
     ipa_output = request.form.get("ipa")
 
     if serial_number:
-        with open(f"/log/{serial_number}_debug.log", "a") as log_file:
+        with open(f"/var/www/html/workspace/log/{serial_number}_debug.log", "a") as log_file:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_file.write(current_time + "\n")
             log_file.write("---------------Debug-info---------------" + "\n" + "\n")
@@ -203,8 +211,8 @@ def ibstate():
 def receive_serial_e():
 
     if not app.config["isGetStartTime"]:
-        if os.path.exists("/log/dnsmasq.log"):
-            with open("/log/dnsmasq.log", "r") as file:
+        if os.path.exists("/var/www/html/workspace/log/dnsmasq.log"):
+            with open("/var/www/html/workspace/log/dnsmasq.log", "r") as file:
                 for line in file:
                     if "ipxe_ubuntu2204/ubuntu2204.cfg" in line:
                         time_regex = r"(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})"
@@ -243,7 +251,7 @@ def receive_serial_e():
 @app.route("/<path:file_path>")
 def open_file(file_path):
     try:
-        with open("/log/" + file_path, "r") as f:
+        with open("/var/www/html/workspace/log/" + file_path, "r") as f:
             file_content = f.read()
         return render_template(
             "file.html", file_path=file_path, file_content=file_content

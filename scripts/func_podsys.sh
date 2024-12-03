@@ -36,10 +36,10 @@ is_valid_storage() {
 
 # delete_logs of apache and dnsmasq(docker)
 delete_logs() {
-    if [ ! -d "log" ]; then
-        mkdir -p "log"
+    if [ ! -d "workspace/log" ]; then
+        mkdir -p "workspace/log"
     fi
-    logs=("log/dnsmasq.log" "log/access.log" "log/error.log" "log/other_vhosts_access.log" "log/conf_ip.log")
+    logs=("workspace/log/dnsmasq.log" "workspace/log/access.log" "workspace/log/error.log" "workspace/log/other_vhosts_access.log" "workspace/log/conf_ip.log")
 
     for log in "${logs[@]}"; do
         if [ -f "$log" ]; then
@@ -50,19 +50,20 @@ delete_logs() {
 
 # get id_rsa ssh-key
 get_rsa (){
-  if [ ! -f /home/nexus/.ssh/id_rsa.pub ] || [ ! -f /home/nexus/.ssh/id_rsa ]; then
-       sudo -u nexus ssh-keygen -t rsa -N "" -f /home/nexus/.ssh/id_rsa
+  local user=$1
+  if [ ! -f /home/$user/.ssh/id_rsa.pub ] || [ ! -f /home/$user/.ssh/id_rsa ]; then
+       sudo -u $user ssh-keygen -t rsa -N "" -f /home/$user/.ssh/id_rsa
   fi
-  if [ ! -f /home/nexus/.ssh/authorized_keys ]; then
-          cp /home/nexus/.ssh/id_rsa.pub /home/nexus/.ssh/authorized_keys
-          chown nexus:nexus /home/nexus/.ssh/authorized_keys
-          chmod 644 /home/nexus/.ssh/authorized_keys
+  if [ ! -f /home/$user/.ssh/authorized_keys ]; then
+          cp /home/$user/.ssh/id_rsa.pub /home/$user/.ssh/authorized_keys
+          chown $user:$user /home/$user/.ssh/authorized_keys
+          chmod 644 /home/$user/.ssh/authorized_keys
   else
-         if ! grep -q "$(cat /home/nexus/.ssh/id_rsa.pub)" /home/nexus/.ssh/authorized_keys 2>/dev/null; then
-               cat /home/nexus/.ssh/id_rsa.pub >> /home/nexus/.ssh/authorized_keys
+         if ! grep -q "$(cat /home/$user/.ssh/id_rsa.pub)" /home/$user/.ssh/authorized_keys 2>/dev/null; then
+               cat /home/$user/.ssh/id_rsa.pub >> /home/$user/.ssh/authorized_keys
          fi
   fi
-  new_pub_key=$(<"/home/nexus/.ssh/id_rsa.pub")
+  new_pub_key=$(<"/home/$user/.ssh/id_rsa.pub")
 }
 
 # Function to check the iplist.txt format

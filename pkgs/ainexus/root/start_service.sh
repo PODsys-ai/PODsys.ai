@@ -5,10 +5,27 @@ start_flask_app() {
         nohup python3 /root/app.py -h 0.0.0.0 > /dev/null 2>&1 &
 }
 
-CUDA=cuda_12.2.2_535.104.05_linux.run
-ISO=ubuntu-22.04.5-live-server-amd64.iso
+get_subnet_mask() {
+    ip_address=$1
+    ip_info=$(ip a | grep -A 1 $ip_address)
+    if [ -z "$ip_info" ]; then
+        echo "Error: IP address $ip_address not found." >&2
+        exit 1
+    fi
+    subnet_mask=$(echo "$ip_info" | grep -oE 'inet\s[0-9\.]+/[0-9]+' | grep -oE '/[0-9]+')
+    echo $subnet_mask
+}
 
-echo -e "\033[43;31m "Welcome to the cluster deployment software v2.7"\033[0m"
+ISO=ubuntu-22.04.5-live-server-amd64.iso
+manager_ip=$(cat /var/www/html/workspace/config.yaml | grep "manager_ip" | cut -d ":" -f 2 | tr -d ' ')
+manager_nic=$(cat /var/www/html/workspace/config.yaml | grep "manager_nic" | cut -d ":" -f 2 | tr -d ' ')
+compute_storage=$(cat /var/www/html/workspace/config.yaml | grep "compute_storage" | cut -d ":" -f 2 | tr -d ' ')
+compute_passwd=$(cat /var/www/html/workspace/config.yaml | grep "compute_passwd" | cut -d ":" -f 2 | tr -d ' ')
+dhcp_s=$(cat /var/www/html/workspace/config.yaml | grep "dhcp_s" | cut -d ":" -f 2 | tr -d ' ')
+dhcp_e=$(cat /var/www/html/workspace/config.yaml | grep "dhcp_e" | cut -d ":" -f 2 | tr -d ' ')
+subnet_mask=$(get_subnet_mask ${manager_ip})
+
+echo -e "\033[43;31m "Welcome to the cluster deployment software v2.8"\033[0m"
 echo "  ____     ___    ____    ____   __   __  ____  ";
 echo " |  _ \   / _ \  |  _ \  / ___|  \ \ / / / ___| ";
 echo " | |_) | | | | | | | | | \___ \   \ V /  \___ \ ";
@@ -18,6 +35,19 @@ echo
 
 echo -e "\033[31mdhcp-config : /etc/dnsmasq.conf\033[0m"
 echo -e "\033[31muser-data   : /var/www/html/jammy/user-data\033[0m"
+
+if [ "${download_mode}" == "p2p" ]; then
+  mkdir -p "/var/www/html/workspace/torrents"
+  chmod 755 -R /var/www/html/workspace/torrents
+  transmission-create -o /var/www/html/workspace/torrents/drivers.torrent -t http://${manager_ip}:6969/announce -p /var/www/html/workspace/drivers/
+  service transmission-daemon start
+  chmod 755 -R /var/www/html/workspace/torrents
+  sleep 3s
+  service transmission-daemon status
+  transmission-remote -a /var/www/html/workspace/torrents/drivers.torrent  -w /var/www/html/workspace/
+  sleep 3s
+
+fi
 
 compute_encrypted_password=$(printf "${compute_passwd}" | openssl passwd -6 -salt 'FhcddHFVZ7ABA4Gi' -stdin)
 
@@ -34,7 +64,7 @@ dhcp-boot=tag:bios,pxelinux.0
 dhcp-boot=tag:efi-x86_64,bootx64.efi
 enable-tftp
 tftp-root=/srv/tftp/pxe_ubuntu2204
-log-facility=/log/dnsmasq.log
+log-facility=/var/www/html/workspace/log/dnsmasq.log
 log-queries
 log-dhcp
 EOF
@@ -54,7 +84,7 @@ dhcp-boot=tag:x64-uefi,snponly.efi
 dhcp-boot=tag:ipxe,ubuntu2204.cfg
 enable-tftp
 tftp-root=/srv/tftp/ipxe_ubuntu2204
-log-facility=/log/dnsmasq.log
+log-facility=/var/www/html/workspace/log/dnsmasq.log
 log-queries
 log-dhcp
 EOF
@@ -90,7 +120,7 @@ function gfxmode {
 set linux_gfx_mode=keep
 export linux_gfx_mode
 
-menuentry 'Ubuntu 22.04.4 autoinstall' {
+menuentry 'Ubuntu 22.04.5 autoinstall' {
         gfxmode \$linux_gfx_mode
         linux /vmlinuz \$vt_handoff root=/dev/ram0 ramdisk_size=2000000 ip=dhcp url=http://${manager_ip}:8800/workspace/${ISO} autoinstall ds=nocloud-net\;s=http://${manager_ip}:8800/jammy/ ---
         initrd /initrd
@@ -110,7 +140,7 @@ MENU COLOR SEL      7     #ffffffff #00000000
 MENU COLOR UNSEL    37;40 #ffffffff #00000000
 MENU COLOR BORDER   37;40 #ffffffff #00000000
 
-LABEL Ubuntu Server 22.04.4
+LABEL Ubuntu Server 22.04.5
     kernel /vmlinuz
     initrd /initrd
     append root=/dev/ram0 ip=dhcp ramdisk_size=2000000 url=http://${manager_ip}:8800/workspace/${ISO} autoinstall ds=nocloud-net;s=http://${manager_ip}:8800/jammy/  cloud-config-url=/dev/null
@@ -221,30 +251,14 @@ autoinstall:
     - bash preseed.sh ${manager_ip} ${compute_storage}
   late-commands:
     - cp /etc/netplan/00-installer-config.yaml /target/etc/netplan/00-installer-config.yaml
-    - curtin in-target --target=/target -- wget http://${manager_ip}:8800/jammy/install.sh
-    - curtin in-target --target=/target -- wget http://${manager_ip}:8800/workspace/iplist.txt || true
-    - curtin in-target --target=/target -- wget http://${manager_ip}:8800/workspace/common.tgz
-    - curtin in-target --target=/target -- tar -xzf common.tgz
-    - curtin in-target --target=/target -- bash -c 'if [ "\$(lspci | grep -i "Mellanox")" ]; then wget http://${manager_ip}:8800/workspace/ib.tgz; fi'
-    - curtin in-target --target=/target -- bash -c 'if [ "\$(lspci | grep -i "NVIDIA")" ]; then wget http://${manager_ip}:8800/workspace/nvidia.tgz; fi'
-    - curtin in-target --target=/target -- bash -c 'if [ "\$(lspci | grep -i "NVIDIA")" ]; then wget http://${manager_ip}:8800/workspace/${CUDA}; fi'
     - mkdir /target/root/.ssh && echo "${NEW_PUB_KEY}" >/target/root/.ssh/authorized_keys
-    - dpkg -i /target/common/nfs/*.deb || true
-    - rm /lib/systemd/system/nfs-common.service  || true
-    - systemctl daemon-reload || true
-    - systemctl start nfs-common || true
-    - curtin in-target --target=/target -- mkdir -p podsys
-    - mount -t nfs -o vers=3 ${manager_ip}:/home/nexus/podsys/log /target/podsys || true
+    - wget http://${manager_ip}:8800/jammy/preseed1.sh && chmod 755 preseed1.sh && bash preseed1.sh ${manager_ip} ${download_mode}
+    - curtin in-target --target=/target -- wget http://${manager_ip}:8800/jammy/install.sh
     - curtin in-target --target=/target -- chmod 755 install.sh || true
-    - curtin in-target --target=/target -- chmod 755 ${CUDA} || true
-    - curtin in-target --target=/target -- /install.sh ${manager_ip}
+    - curtin in-target --target=/target -- /install.sh ${manager_ip} ${download_mode}
     - umount /target/podsys || true
-    - curtin in-target --target=/target -- rm -rf common || true
-    - curtin in-target --target=/target -- rm -f  common.tgz || true
-    - curtin in-target --target=/target -- rm -f  ${CUDA} || true
-    - curtin in-target --target=/target -- rm -f  install.sh || true
+    - rm -f  /target/install.sh /target/iplist.txt  || true
     - cp /autoinstall.yaml /target/podsys/autoinstall.yaml || true
-    - mv /target/iplist.txt /target/podsys/iplist.txt || true
     - reboot
   storage:
     swap:
@@ -344,5 +358,5 @@ echo "checking services: "
 service apache2 status
 service dnsmasq status
 echo
-chmod 755 -R /log
+chmod 755 -R /var/www/html/workspace/log
 start_flask_app

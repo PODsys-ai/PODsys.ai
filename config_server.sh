@@ -11,7 +11,7 @@ if [ "$1" = "-nfsordma" ];then
                 echo "Usage:sudo $0 -nfsordma <share_directory>"
                 exit 1
         fi
-        echo "config nfs server"
+        echo "Config nfs server"
         # $2 shared  floder
         if [[ $2 == /* ]];then
                 ./scripts/conf_server_nfsordma.sh $2
@@ -25,7 +25,7 @@ elif [ "$1" = "-nfs" ];then
                 echo "Usage:sudo $0 -nfs <share_directory>"
                 exit 1
         fi
-        echo "config nfs server"
+        echo "Config nfs server"
         # $2 shared floder
         if [[ $2 == /* ]];then
                 ./scripts/conf_server_nfs.sh $2
@@ -39,7 +39,7 @@ elif [ "$1" = "-nis" ];then
             echo "Usage: $0 -nis  <nis_server_ip>"
             exit 1
         fi
-        echo "config nis server"
+        echo "Config nis server"
         # $2 represents the IP address of the nis server
         ip_info=$(ip a | grep -E "inet\s$2\/[0-9]+")
         if [ -z "$ip_info" ]; then
@@ -54,7 +54,7 @@ elif [ "$1" = "-ldap" ];then
                 echo "Usage:sudo $0 -ldap <ldap_server_ip> <ldap_password>"
                 exit 1
          fi
-         echo "config ldap server"
+         echo "Config ldap server"
          # $2 represents the IP address of the Openldap server
          ip_info=$(ip a | grep -A 1 $2)
          if [ -z "$ip_info" ]; then
@@ -108,9 +108,10 @@ elif [ "$1" = "-pre" ];then
                 sed -i "/$machine/d"  hosts.txt
             fi
         done
+        echo -e "Generating hosts.txt successfully\n"
 
         # ssh localhost
-        manager_ip=$(cat config.yaml | grep "manager_ip" | cut -d ":" -f 2 | tr -d ' ')
+        manager_ip=$(cat workspace/config.yaml | grep "manager_ip" | cut -d ":" -f 2 | tr -d ' ')
         sudo -u ${username} ssh-keygen -f "/home/${username}/.ssh/known_hosts" -R "manager_ip" > /dev/null 2>&1
         sudo -u ${username} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${username}@$manager_ip" "echo 'SSH to $manager_ip successful'" 2>/dev/null
         if [ $? -eq 0 ]; then
@@ -130,5 +131,5 @@ elif [ "$1" = "-pre" ];then
 
 else
         echo "Invalid arguement: $1"
-	echo "valid arguments: -pre, -nfs, -nfsordma, -nis, -IPoIB, -ldap"
+        echo "Valid arguments: -pre, -nfs, -nfsordma, -nis, -IPoIB, -ldap"
 fi

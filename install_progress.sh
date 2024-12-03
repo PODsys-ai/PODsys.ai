@@ -48,9 +48,10 @@ do
          echo
      fi
 done
+echo -e "Generating hosts.txt successfully\n"
 
 # ssh localhost
-manager_ip=$(cat config.yaml | grep "manager_ip" | cut -d ":" -f 2 | tr -d ' ')
+manager_ip=$(cat workspace/config.yaml | grep "manager_ip" | cut -d ":" -f 2 | tr -d ' ')
 sudo -u $username ssh-keygen -f "/home/${username}/.ssh/known_hosts" -R "$manager_ip" > /dev/null 2>&1
 sudo -u $username ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${username}@$manager_ip" "echo 'SSH to $manager_ip successful'" 2>/dev/null
 if [ $? -eq 0 ]; then

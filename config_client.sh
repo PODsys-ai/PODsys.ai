@@ -1,6 +1,8 @@
 #!/bin/bash
 cd $(dirname $0)
 
+username="nexus"
+
 if [ "$(id -u)" != "0" ]; then echo "Error:please use sudo" && exit 1; fi
 
 if [ "$1" = "-nfsordma" ]; then
@@ -9,7 +11,7 @@ if [ "$1" = "-nfsordma" ]; then
                 echo "Usage:sudo $0 -nfsordma <nfs_server_ip> <server_directory> <client_directory>"
                 exit 1
         fi
-        echo "config nfsordma client"
+        echo "Config nfsordma client"
         # $2 represents the IP addresses of the NFSoRDMA server
         ip_info=$(ip a | grep -E "inet\s$2\/[0-9]+")
         if [ -z "$ip_info" ]; then
@@ -21,7 +23,7 @@ if [ "$1" = "-nfsordma" ]; then
         server_directory=$3
         client_directory=$4
         if [[ ${server_directory} == /* && ${client_directory} == /* ]]; then
-                sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_nfsordma.sh $2 $3 $4
+                sudo -u $username pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/conf_client_nfsordma.sh $2 $3 $4
         else
                 echo "Please enter an absolute path"
         fi
@@ -32,7 +34,7 @@ elif [ "$1" = "-nfs" ]; then
                 echo "Usage:sudo $0 -nfs <nfs_server_ip> <server_directory> <client_directory>"
                 exit 1
         fi
-        echo "config nfs client"
+        echo "Config nfs client"
         ip_info=$(ip a | grep -E "inet\s$2\/[0-9]+")
         if [ -z "$ip_info" ]; then
                 echo "Error: IP address $2 not found."
@@ -41,13 +43,13 @@ elif [ "$1" = "-nfs" ]; then
         server_directory=$3
         client_directory=$4
         if [[ ${server_directory} == /* && ${client_directory} == /* ]]; then
-                sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_nfs.sh $2 $3 $4
+                sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/conf_client_nfs.sh $2 $3 $4
         else
                 echo "Please enter an absolute path"
         fi
 
 elif [ "$1" = "-beegfs" ]; then
-        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_beegfs.sh
+        sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/conf_client_beegfs.sh
 
 elif [ "$1" = "-nis" ]; then
         if [ $# -lt 2 ]; then
@@ -62,12 +64,12 @@ elif [ "$1" = "-nis" ]; then
                 echo "Error: IP address $2 not found."
                 exit 1
         fi
-        echo "config nis client"
-        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_nis.sh $2
+        echo "Config nis client"
+        sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/conf_client_nis.sh $2
 
 elif [ "$1" = "-IPoIB" ]; then
-        echo "config IPoIB"
-        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/set_client_IPoIB.sh
+        echo "Config IPoIB"
+        sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/set_client_IPoIB.sh
 
 elif [ "$1" = "-ldap" ]; then
         if [ $# -lt 3 ]; then
@@ -75,7 +77,7 @@ elif [ "$1" = "-ldap" ]; then
                 echo "Usage:sudo $0 -ldap <ldap_server_ip> <ldap_password>"
                 exit 1
         fi
-        echo "config ldap client"
+        echo "Config ldap client"
         # $2 represents the IP address of the Openldap server
         ip_info=$(ip a | grep -E "inet\s$2\/[0-9]+")
         if [ -z "$ip_info" ]; then
@@ -83,12 +85,12 @@ elif [ "$1" = "-ldap" ]; then
                 exit 1
         fi
         # $3 represents the password of Openldap
-        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/conf_client_ldap.sh $2 $3
+        sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/conf_client_ldap.sh $2 $3
 
 elif [ "$1" = "-health-check" ]; then
-        sudo -u nexus pdsh -l root -R ssh -w ^hosts.txt /home/nexus/podsys/scripts/health-checks.sh
+        sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/health-checks.sh
 
 else
         echo "Invalid argument: $1"
-        echo "valid arguments: -nfs, -nfsordma, -nis, -IPoIB, -ldap, -health-check"
+        echo "Valid arguments: -nfs, -nfsordma, -nis, -IPoIB, -ldap, -health-check"
 fi

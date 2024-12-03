@@ -2,19 +2,19 @@
 cd $(dirname $0)
 
 if [ "$(id -u)" != "0" ]; then echo "Error:please use sudo" &&  exit 1 ;fi
-if [ ! -d "log" ]; then mkdir log; fi
+if [ ! -d "workspace/log" ]; then mkdir -p workspace/log; fi
 
 hostname=$(hostname)
 timestamp=$(date +%Y-%m-%d_%H-%M-%S)
-install_log="./log/${hostname}_install_${timestamp}.log"
+install_log="./workspace/log/${hostname}_install_${timestamp}.log"
 
 CUDA=cuda_12.2.2_535.104.05_linux.run
 IB=MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-ext
-NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.183.06.run
+NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.216.01.run
 
 # install common deb
 echo -e "\033[32m---Install deb---\033[0m"
-tar -xzf workspace/common.tgz > /dev/null &
+tar -xzf workspace/drivers/common.tgz > /dev/null &
 pid=$!
 while ps -p $pid > /dev/null; do
     echo -n "*"
@@ -22,7 +22,7 @@ while ps -p $pid > /dev/null; do
 done
 echo
 echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Start install deb------\e[0m"  >> $install_log
-apt purge -y unattended-upgrades                        >> $install_log
+apt-get purge -y unattended-upgrades                    >> $install_log
 dpkg -i ./common/lib/*.deb                              >> $install_log
 dpkg -i ./common/tools/*.deb                            >> $install_log
 dpkg -i ./common/docker/*.deb                           >> $install_log
@@ -35,7 +35,7 @@ rm -rf common/
 if lspci | grep -i "Mellanox"; then
         echo -e  "\033[32m---Install MLNX---\033[0m"
         echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Start install MLNX------\e[0m"  >> $install_log
-        tar -xzf workspace/ib.tgz > /dev/null &
+        tar -xzf workspace/drivers/ib.tgz > /dev/null &
         pid=$!
         while ps -p $pid > /dev/null; do
             echo -n "*"
@@ -54,7 +54,7 @@ fi
 
 # Install NVIDIA Driver
 if lspci | grep -i "3D controller: NVIDIA"; then
-        tar -xzf workspace/nvidia.tgz > /dev/null &
+        tar -xzf workspace/drivers/nvidia.tgz > /dev/null &
         pid=$!
         while ps -p $pid > /dev/null; do
             echo -n "*"
@@ -110,7 +110,7 @@ if lspci | grep -i "3D controller: NVIDIA"; then
         # Install CUDA
         echo -e "\033[32m---Install CUDA---\033[0m"
         echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Start install CUDA------\e[0m"  >> $install_log
-        ./workspace/${CUDA} --silent --toolkit >> $install_log
+        ./workspace/drivers/${CUDA} --silent --toolkit >> $install_log
         echo 'export PATH=$PATH:/usr/local/cuda/bin' >> /etc/profile
         echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64' >> /etc/profile
         source  /etc/profile
@@ -159,7 +159,7 @@ systemctl restart docker >> $install_log
 
 set_release() {
     current_datetime=$(date +%Y-%m-%d-%H-%M-%S)
-    echo "PODsys_Version=\"2.7\"" > /etc/podsys-release
+    echo "PODsys_Version=\"2.8\"" > /etc/podsys-release
     echo "PODsys_Deployment_DATE=\"$current_datetime\"" >> /etc/podsys-release
 }
 
