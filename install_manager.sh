@@ -9,8 +9,8 @@ timestamp=$(date +%Y-%m-%d_%H-%M-%S)
 install_log="./workspace/log/${hostname}_install_${timestamp}.log"
 
 CUDA=cuda_12.2.2_535.104.05_linux.run
-IB=MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-ext
-NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.216.01.run
+IB=MLNX_OFED_LINUX-24.10-1.1.4.0-ubuntu22.04-ext
+NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.216.03.run
 
 # install common deb
 echo -e "\033[32m---Install deb---\033[0m"
@@ -159,7 +159,7 @@ systemctl restart docker >> $install_log
 
 set_release() {
     current_datetime=$(date +%Y-%m-%d-%H-%M-%S)
-    echo "PODsys_Version=\"2.8\"" > /etc/podsys-release
+    echo "PODsys_Version=\"2.9\"" > /etc/podsys-release
     echo "PODsys_Deployment_DATE=\"$current_datetime\"" >> /etc/podsys-release
 }
 

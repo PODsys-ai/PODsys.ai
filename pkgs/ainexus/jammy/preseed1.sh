@@ -18,40 +18,19 @@ setup_nfs() {
 setup_nfs
 
 if [ "$G_DOWNLOAD_MODE" == "p2p" ]; then
-    wget http://${G_SERVER_IP}:8800/workspace/transmission.tgz
-    tar -xzf transmission.tgz
-    dpkg -i transmission/*.deb || true
-    echo "net.core.rmem_max = 4194304" >>/etc/sysctl.conf
-    echo "net.core.wmem_max = 1048576" >>/etc/sysctl.conf
-    sysctl -p
-    systemctl stop transmission-daemon.service
-    sed -i 's/"rpc-authentication-required": true,/"rpc-authentication-required": false,/g' "/etc/transmission-daemon/settings.json"
-    systemctl start transmission-daemon.service
-    sleep 5
-    transmission-remote -a /target/podsys/torrents/drivers.torrent -w /tmp/
 
-    declare -a files=("common.tgz" "ib.tgz" "nvidia.tgz" "cuda_12.2.2_535.104.05_linux.run")
-
-    check_files_downloaded() {
-        for file in "${files[@]}"; do
-            if [ ! -f "/tmp/drivers/$file" ]; then
-                return 1
-            fi
-        done
-        return 0
-    }
-
+    nohup ctorrent -s /tmp /target/podsys/torrents/drivers.torrent > /tmp/ctorrent.log 2>&1 &
+    ctorrent_pid=$!
     while true; do
-        if check_files_downloaded; then
+        if tail -n 20 /tmp/ctorrent.log | grep -q "Download complete"; then
+            curl -X POST  "http://${G_SERVER_IP}:5000/receive_p2p_status"
             break
-        else
-            sleep 10
         fi
+        sleep 10
     done
-    sleep 1
-    tar -xzf /tmp/drivers/common.tgz -C /target/
-    tar -xzf /tmp/drivers/ib.tgz -C /target/
-    tar -xzf /tmp/drivers/nvidia.tgz -C /target/
-    cp /tmp/drivers/cuda_12.2.2_535.104.05_linux.run /target/cuda_12.2.2_535.104.05_linux.run
+    sleep 10
+    tar -xzf /tmp/common.tgz -C /target/
+    tar -xzf /tmp/ib.tgz -C /target/
+    tar -xzf /tmp/nvidia.tgz -C /target/
+    cp /tmp/cuda_12.2.2_535.104.05_linux.run /target/cuda_12.2.2_535.104.05_linux.run
 fi
-

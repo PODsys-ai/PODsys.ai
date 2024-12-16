@@ -23,7 +23,7 @@ if docker ps -a --format '{{.Image}}' | grep -q "ainexus:v2.0"; then
     docker rmi ainexus:v2.0 > /dev/null
 fi
 
-docker import pkgs/ainexus-2.8 ainexus:v2.0 > /dev/null &
+docker import pkgs/ainexus-2.9 ainexus:v2.0 > /dev/null &
 pid=$!
 while ps -p $pid > /dev/null; do
     echo -n "*"
@@ -32,7 +32,7 @@ done
 echo
 
 # mode=ipxe_ubuntu2204 or mode=pxe_ubuntu2204
-# download_mode=http or download_mode=nfs or download_mode=p2p 
+# download_mode=http or download_mode=nfs or download_mode=p2p
 mode="ipxe_ubuntu2204"
 download_mode="http"
 

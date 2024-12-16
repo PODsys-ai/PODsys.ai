@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 set_release() {
     current_datetime=$(date +%Y-%m-%d-%H-%M-%S)
-    echo "PODsys_Version=\"2.8\"" >/etc/podsys-release
+    echo "PODsys_Version=\"2.9\"" >/etc/podsys-release
     echo "PODsys_Deployment_DATE=\"$current_datetime\"" >>/etc/podsys-release
 }
 
@@ -95,8 +95,8 @@ install_compute() {
     curl -X POST -d "serial=$SN&log=$log_name" "http://$1:5000/updatelog"
 
     CUDA=cuda_12.2.2_535.104.05_linux.run
-    IB=MLNX_OFED_LINUX-23.10-3.2.2.0-ubuntu22.04-ext
-    NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.216.01.run
+    IB=MLNX_OFED_LINUX-24.10-1.1.4.0-ubuntu22.04-ext
+    NVIDIA_DRIVER=NVIDIA-Linux-x86_64-535.216.03.run
 
     # install deb
     echo -e "\e[32m$(date +%Y-%m-%d_%H-%M-%S) Start install deb------\e[0m" >>$install_log
@@ -108,6 +108,7 @@ install_compute() {
         install_packages_from_dir "./common"
     elif [ "$method" == "nfs" ]; then
         install_packages_from_dir "./podsys/common"
+        curl -X POST  "http://$1:5000/receive_common_nfs"
     elif [ "$method" == "p2p" ]; then
         install_packages_from_dir "./common"
     else
@@ -130,6 +131,7 @@ install_compute() {
             ./ib/${IB}/mlnxofedinstall --without-fw-update --with-nfsrdma --all --force >>$install_log
         elif [ "$method" == "nfs" ]; then
             ./podsys/ib/${IB}/mlnxofedinstall --without-fw-update --with-nfsrdma --all --force >>$install_log
+            curl -X POST  "http://$1:5000/receive_ib_nfs"
         elif [ "$method" == "p2p" ]; then
             ./ib/${IB}/mlnxofedinstall --without-fw-update --with-nfsrdma --all --force >>$install_log
         else
@@ -247,6 +249,7 @@ install_compute() {
         elif [ "$method" == "p2p" ]; then
             chmod 755 ${CUDA}
             ./${CUDA} --silent --toolkit >>$install_log
+            curl -X POST  "http://$1:5000/receive_cuda_nfs"
         else
             wget -q http://$1:8800/workspace/drivers/${CUDA}
             chmod 755 ${CUDA}
@@ -289,6 +292,7 @@ install_compute() {
             dpkg -i ./nvidia/cudnn/*.deb >>$install_log
         elif [ "$method" == "nfs" ]; then
             dpkg -i ./podsys/nvidia/cudnn/*.deb >>$install_log
+            curl -X POST  "http://$1:5000/receive_nvidia_nfs"
         elif [ "$method" == "p2p" ]; then
             dpkg -i ./nvidia/cudnn/*.deb >>$install_log
         else

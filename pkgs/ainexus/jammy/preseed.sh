@@ -4,6 +4,7 @@ cd $(dirname $0)
 G_SERVER_IP="$1"
 G_STORAGE="$2"
 
+wget -q http://${G_SERVER_IP}:8800/workspace/iplist.txt || true
 SN=`dmidecode -t 1|grep Serial|awk -F : '{print $2}'|awk -F ' ' '{print $1}'`
 curl -X POST -d "serial=$SN" http://"${G_SERVER_IP}":5000/receive_serial_s
 HOSTNAME=`grep $SN ./iplist.txt|awk  '{print $2}'`
@@ -24,7 +25,6 @@ else
         echo "HOSTNAME is Empty"
 fi
 sed -i "s/nic/$network_interface/g"  /autoinstall.yaml
-
 
 sata_list=$(lsblk -o NAME,TRAN | grep "sata" | awk '{print $1}')
 nvme_list=$(lsblk -o NAME,TRAN | grep "nvme" | awk '{print $1}')

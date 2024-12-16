@@ -25,7 +25,7 @@ dhcp_s=$(cat /var/www/html/workspace/config.yaml | grep "dhcp_s" | cut -d ":" -f
 dhcp_e=$(cat /var/www/html/workspace/config.yaml | grep "dhcp_e" | cut -d ":" -f 2 | tr -d ' ')
 subnet_mask=$(get_subnet_mask ${manager_ip})
 
-echo -e "\033[43;31m "Welcome to the cluster deployment software v2.8"\033[0m"
+echo -e "\033[43;31m "Welcome to the cluster deployment software v2.9"\033[0m"
 echo "  ____     ___    ____    ____   __   __  ____  ";
 echo " |  _ \   / _ \  |  _ \  / ___|  \ \ / / / ___| ";
 echo " | |_) | | | | | | | | | \___ \   \ V /  \___ \ ";
@@ -37,16 +37,12 @@ echo -e "\033[31mdhcp-config : /etc/dnsmasq.conf\033[0m"
 echo -e "\033[31muser-data   : /var/www/html/jammy/user-data\033[0m"
 
 if [ "${download_mode}" == "p2p" ]; then
+  nohup /root/opentracker > /dev/null 2>&1 &
   mkdir -p "/var/www/html/workspace/torrents"
-  chmod 755 -R /var/www/html/workspace/torrents
   transmission-create -o /var/www/html/workspace/torrents/drivers.torrent -t http://${manager_ip}:6969/announce -p /var/www/html/workspace/drivers/
-  service transmission-daemon start
   chmod 755 -R /var/www/html/workspace/torrents
-  sleep 3s
-  service transmission-daemon status
-  transmission-remote -a /var/www/html/workspace/torrents/drivers.torrent  -w /var/www/html/workspace/
-  sleep 3s
-
+  nohup ctorrent -s /var/www/html/workspace/drivers /var/www/html/workspace/torrents/drivers.torrent > /dev/null 2>&1 &
+  sleep 2s
 fi
 
 compute_encrypted_password=$(printf "${compute_passwd}" | openssl passwd -6 -salt 'FhcddHFVZ7ABA4Gi' -stdin)
@@ -244,11 +240,8 @@ autoinstall:
     authorized-keys: [${NEW_PUB_KEY}]
     install-server: true
   early-commands:
-    - wget http://${manager_ip}:8800/workspace/iplist.txt || true
-    - wget http://${manager_ip}:8800/jammy/preseed.sh
-    - chmod 755 preseed.sh
     - echo "${NEW_PUB_KEY}" >/root/.ssh/authorized_keys
-    - bash preseed.sh ${manager_ip} ${compute_storage}
+    - wget http://${manager_ip}:8800/jammy/preseed.sh && chmod 755 preseed.sh && bash preseed.sh ${manager_ip} ${compute_storage}
   late-commands:
     - cp /etc/netplan/00-installer-config.yaml /target/etc/netplan/00-installer-config.yaml
     - mkdir /target/root/.ssh && echo "${NEW_PUB_KEY}" >/target/root/.ssh/authorized_keys

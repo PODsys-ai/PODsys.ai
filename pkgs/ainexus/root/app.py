@@ -33,6 +33,12 @@ app.config["firstInstallTime"] = None
 app.config["installTimeDiff"] = None
 app.config["finishedCount"] = 0
 
+# counts of ib nvidia and ib cuda when use p2p or nfs mode
+app.config["count_ib"] = 0
+app.config["count_common"] = 0
+app.config["count_nvidia"] = 0
+app.config["count_cuda"] = 0
+
 # counts of receive_serial_e
 app.config["counts_receive_serial_e"] = 0
 app.config["isFinished"] = False
@@ -44,14 +50,14 @@ app.config["countMachines"] = generation_monitor_temple()
 current_year = datetime.now().year
 
 # Network Speed DHCP config.yaml
-config_data = parse_config('/var/www/html/workspace/config.yaml')
+config_data = parse_config("/var/www/html/workspace/config.yaml")
 
-interface = config_data['manager_nic']
-dhcp_s = config_data['dhcp_s']
-dhcp_e = config_data['dhcp_e']
-manger_ip = config_data['manager_ip']
-compute_storage = config_data['compute_storage']
-compute_passwd = config_data['compute_passwd']
+interface = config_data["manager_nic"]
+dhcp_s = config_data["dhcp_s"]
+dhcp_e = config_data["dhcp_e"]
+manger_ip = config_data["manager_ip"]
+compute_storage = config_data["compute_storage"]
+compute_passwd = config_data["compute_passwd"]
 
 
 total_ips = get_len_iprange(dhcp_s, dhcp_e)
@@ -129,6 +135,7 @@ def get_time():
 def favicon():
     return "", 204
 
+
 # debug mode
 @app.route("/debug", methods=["POST"])
 def debug():
@@ -137,7 +144,9 @@ def debug():
     ipa_output = request.form.get("ipa")
 
     if serial_number:
-        with open(f"/var/www/html/workspace/log/{serial_number}_debug.log", "a") as log_file:
+        with open(
+            f"/var/www/html/workspace/log/{serial_number}_debug.log", "a"
+        ) as log_file:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_file.write(current_time + "\n")
             log_file.write("---------------Debug-info---------------" + "\n" + "\n")
@@ -205,6 +214,39 @@ def ibstate():
         return "Get ibstate", 200
     else:
         return "No ibstate", 400
+
+
+@app.route("/receive_p2p_status", methods=["POST"])
+def receive_p2p_status():
+    app.config["count_common"] = app.config["count_common"] + 1
+    app.config["count_ib"] = app.config["count_ib"] + 1
+    app.config["count_nvidia"] = app.config["count_nvidia"] + 1
+    app.config["count_cuda"] = app.config["count_cuda"] + 1
+    return "Get p2p status", 200
+
+
+@app.route("/receive_common_nfs", methods=["POST"])
+def receive_common_nfs():
+    app.config["count_common"] = app.config["count_common"] + 1
+    return "Get nfs status", 200
+
+
+@app.route("/receive_ib_nfs", methods=["POST"])
+def receive_ib_nfs():
+    app.config["count_ib"] = app.config["count_ib"] + 1
+    return "Get nfs status", 200
+
+
+@app.route("/receive_nvidia_nfs", methods=["POST"])
+def receive_nvidia_nfs():
+    app.config["count_nvidia"] = app.config["count_nvidia"] + 1
+    return "Get nfs status", 200
+
+
+@app.route("/receive_cuda_nfs", methods=["POST"])
+def receive_cuda_nfs():
+    app.config["count_cuda"] = app.config["count_cuda"] + 1
+    return "Get nfs status", 200
 
 
 @app.route("/receive_serial_e", methods=["POST"])
@@ -276,6 +318,12 @@ def refresh_data():
         cnt_cuda,
     ) = count_access()
 
+    if os.getenv("download_mode") in ["p2p", "nfs"]:
+        cnt_ib = app.config["count_ib"]
+        cnt_nvidia = app.config["count_nvidia"]
+        cnt_cuda = app.config["count_cuda"]
+        cnt_common = app.config["count_common"]
+
     cnt_end_tag = app.config["counts_receive_serial_e"]
 
     data = {
@@ -310,3 +358,4 @@ def index():
 
 if __name__ == "__main__":
     app.run("0.0.0.0", 5000)
+

@@ -69,6 +69,7 @@ elif [ "$1" = "-nis" ]; then
 
 elif [ "$1" = "-IPoIB" ]; then
         echo "Config IPoIB"
+        sudo -u ${username} pdcp -l root -R ssh -w ^hosts.txt  workspace/iplist.txt  /podsys/
         sudo -u ${username} pdsh -l root -R ssh -w ^hosts.txt /home/${username}/podsys/scripts/set_client_IPoIB.sh
 
 elif [ "$1" = "-ldap" ]; then
