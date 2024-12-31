@@ -1,6 +1,0 @@
-manager_ip:192.168.2.1
-dhcp_s:192.168.2.2
-dhcp_e:192.168.2.254
-manager_nic:enps0f0
-compute_passwd:password
-compute_storage:sda
