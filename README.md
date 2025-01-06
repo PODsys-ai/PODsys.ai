@@ -4,7 +4,7 @@
 [podsys-shell](git@github.com:PODsys-ai/podsys-shell.git) -> Launch [podsys-ainexus](git@github.com:PODsys-ai/podsys-ainexus.git)(includes [podsys-monitor](git@github.com:PODsys-ai/podsys-monitor.git))
 
 ## Version
-v2.9
+v3.0
 ## What is PODsys?
 ** AI Cluster Deployment Software Stack **
 
